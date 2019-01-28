@@ -185,7 +185,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
     banks = BankInfoSerializer(many=True, read_only=True)
     add_money = serializers.DecimalField(max_digits=7,decimal_places=2,help_text='加款')
     def validated_add_money(self,data):
-
+        patt = re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data))
+        if data:
+            pass
+        if data == 0:
+            raise serializers.ValidationError('金额输入异常')
+        return data
     class Meta:
         model = UserProfile
         fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'proxys', 'banks']
