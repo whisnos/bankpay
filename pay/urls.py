@@ -20,12 +20,14 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
 from user.views import UserProfileViewset
-from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, AddMoney
+from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, AddMoney, WithDrawViewset
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
 route.register(r'orders', OrderViewset, base_name="orders")
 route.register(r'banks', BankViewset, base_name="banks")
+route.register(r'drawings',WithDrawViewset,base_name='moneys')
+
 urlpatterns = [
     # path('admin/', admin.site.urls),
     url(r'^', include(route.urls)),

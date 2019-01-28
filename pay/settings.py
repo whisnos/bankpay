@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user.apps.UserConfig',
     'trade.apps.TradeConfig',
-    'rest_framework'
+    'rest_framework',
+    'django_filters'
 ]
 AUTH_USER_MODEL = 'user.UserProfile'
 MIDDLEWARE = [
@@ -133,3 +134,8 @@ JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=10),
     'JWT_RESPONSE_PAYLOAD_HANDLER': 'utils.permissions.jwt_response_payload_handler'
 }
+
+# 自定义ModelBackend Q登录
+AUTHENTICATION_BACKENDS = (
+    'user.views.CustomModelBackend',
+)

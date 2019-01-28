@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.contrib.auth.backends import ModelBackend
+from django.db.models import Q
 from django.shortcuts import render
 from rest_framework import viewsets, mixins, status
 
@@ -12,7 +14,17 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from user.models import UserProfile
 from user.serializers import RegisterUserSerializer, UserDetailSerializer
-
+from django.contrib.auth import get_user_model
+User = get_user_model()
+class CustomModelBackend(ModelBackend):
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        try:
+            user = User.objects.get(Q(username=username) | Q(mobile=username))
+            if user.check_password(password):
+                return user
+        except Exception as e:
+            # print(e)
+            return None
 
 class UserListPagination(PageNumberPagination):
     page_size = 10
@@ -29,7 +41,7 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
         total_count_success_num: 总成功订单数 ---
         total_count_fail_num: 总失败订单数 ---
         total_count_paying_num: 总未支付订单数 ---
-        today_receive: 今日收款 包括成功与否 ---
+        today_receive_all: 今日总收款 包括成功与否 ---
         today_count_num: 今日总订单数 所有 包括成功与否 ---
         today_count_success_num: 今日订单数(仅含成功订单)
     '''

@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from decimal import Decimal
 # Create your views here.
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets, status, views
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.pagination import PageNumberPagination
@@ -15,8 +16,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from trade.models import OrderInfo
-from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer
+from trade.filters import WithDrawFilter
+from trade.models import OrderInfo, WithDrawMoney
+from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
+    WithDrawCreateSerializer
 from user.models import BankInfo, UserProfile
 from utils.make_code import make_short_code
 from utils.permissions import IsOwnerOrReadOnly
@@ -59,7 +62,7 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         return []
 
 
-class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = BankinfoSerializer
@@ -227,6 +230,53 @@ class VerifyView(views.APIView):
             resp['msg'] = '存在多笔订单，需手动处理'
             return Response(resp)
 
+
 class AddMoney(views.APIView):
-    def post(self,request):
+    def post(self, request):
         pass
+
+
+class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
+                      mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    serializer_class = WithDrawSerializer
+    pagination_class = OrderListPagination
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = WithDrawFilter
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return WithDrawSerializer
+        elif self.action == "create":
+            return WithDrawCreateSerializer
+        else:
+            return WithDrawSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return WithDrawMoney.objects.all().order_by('-add_time')
+        if not user.is_proxy:
+            user_queryset = UserProfile.objects.filter(proxy_id=user.id)
+            return [user_obj.withdrawmoney_set.all().order_by('-add_time') for user_obj in user_queryset]
+
+        if user:
+            return WithDrawMoney.objects.filter(user=self.request.user).order_by('-add_time')
+        return []
+
+    def update(self, request, *args, **kwargs):
+        resp = {'msg': []}
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        withdraw_status = self.request.data.get('withdraw_status', '')
+        withdraw_obj = self.get_object()
+        user_obj = UserProfile.objects.filter(id=withdraw_obj.user_id)[0]
+        if not user_obj.is_proxy:
+            if withdraw_status:
+                withdraw_obj.withdraw_status = withdraw_status
+                resp['msg'].append('状态修改成功')
+        else:
+            resp['msg'].append('该用户没有操作权限')
+        withdraw_obj.save()
+        return Response(data=resp, status=status.HTTP_200_OK)

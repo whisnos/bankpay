@@ -57,16 +57,18 @@ class OrderSerializer(serializers.ModelSerializer):
         model = OrderInfo
         fields = "__all__"
 
+
 class BankinfoSerializer(serializers.ModelSerializer):
     """订单序列化器"""
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
-
+    total_money = serializers.CharField(read_only=True)
 
     class Meta:
         model = BankInfo
         fields = "__all__"
+
 
 class OrderListSerializer(serializers.ModelSerializer):
     pay_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
@@ -134,7 +136,7 @@ class GetPaySerializer(serializers.Serializer):
 
 class WithDrawSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    receive_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
+    receive_time = serializers.DateTimeField(read_only=True,format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     money = serializers.FloatField(read_only=True)
     receive_way = serializers.CharField(read_only=True)
@@ -147,8 +149,13 @@ class WithDrawSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WithDrawMoney
-        fields = "__all__"
+        fields = ['id','user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'user_msg',
+                  'receive_account', 'full_name', 'withdraw_no', 'time_rate','withdraw_status']
+
+        # fields = '__all__'
 from rest_framework.response import Response
+
+
 class WithDrawCreateSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     withdraw_status = serializers.CharField(read_only=True)
@@ -162,7 +169,8 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         user = self.context['request'].user
         user_money = user.total_money
-        patt = re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(attrs['money']))
+        patt = re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
+                        str(attrs['money']))
         try:
             patt.group()
         except:
@@ -192,7 +200,10 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
         model = WithDrawMoney
         fields = '__all__'
 
+
 from django.db.models import Q
+
+
 class TotalNumSerializer(serializers.Serializer):
     total = serializers.SerializerMethodField(read_only=True)
 
@@ -206,9 +217,11 @@ class TotalNumSerializer(serializers.Serializer):
             min_time = old_time
         elif not max_time:
             max_time = local_time
-        a = OrderInfo.objects.filter(Q(pay_status__icontains='TRADE_SUCCESS')|Q(pay_status__icontains='NOTICE_FAIL'),user=user, add_time__gte=min_time, add_time__lte=max_time,
+        a = OrderInfo.objects.filter(Q(pay_status__icontains='TRADE_SUCCESS') | Q(pay_status__icontains='NOTICE_FAIL'),
+                                     user=user, add_time__gte=min_time, add_time__lte=max_time,
                                      ).aggregate(Sum('total_amount'))
-        b = OrderInfo.objects.filter(Q(pay_status__icontains='TRADE_SUCCESS')|Q(pay_status__icontains='NOTICE_FAIL'),user=user, add_time__gte=min_time, add_time__lte=max_time).aggregate(Count('id'))
+        b = OrderInfo.objects.filter(Q(pay_status__icontains='TRADE_SUCCESS') | Q(pay_status__icontains='NOTICE_FAIL'),
+                                     user=user, add_time__gte=min_time, add_time__lte=max_time).aggregate(Count('id'))
         a.update(b)
         return (a)
 #
