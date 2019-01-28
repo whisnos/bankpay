@@ -135,7 +135,8 @@ class GetPaySerializer(serializers.Serializer):
 
 
 class WithDrawSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    # user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.CharField(read_only=True)
     receive_time = serializers.DateTimeField(read_only=True,format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     money = serializers.FloatField(read_only=True)

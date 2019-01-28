@@ -4,6 +4,7 @@ import re
 import time
 import datetime
 
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from decimal import Decimal
@@ -258,9 +259,26 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         if user.is_superuser:
             return WithDrawMoney.objects.all().order_by('-add_time')
         if not user.is_proxy:
+            user_list = []
             user_queryset = UserProfile.objects.filter(proxy_id=user.id)
-            return [user_obj.withdrawmoney_set.all().order_by('-add_time') for user_obj in user_queryset]
+            print(len(user_queryset))
 
+            if not user_queryset:
+                return WithDrawMoney.objects.filter(user=self.request.user).order_by('-add_time')
+
+            for user_obj in user_queryset:
+                user_list.append(user_obj.id)
+            print('user_list', user_list)
+            return WithDrawMoney.objects.filter(user_id__in=user_list)
+
+
+            # if len(user_queryset) == 1:
+            #     return WithDrawMoney.objects.filter(Q(user=user_queryset[0])).order_by('-add_time')
+            # elif len(user_queryset) == 2:
+            #     return WithDrawMoney.objects.filter(Q(user=user_queryset[0]) | Q(user=user_queryset[1])).order_by('-add_time')
+            # elif len(user_queryset) == 3:
+            #     return WithDrawMoney.objects.filter(
+            #         Q(user=user_queryset[0]) | Q(user=user_queryset[1]) | Q(user=user_queryset[2])).order_by('-add_time')
         if user:
             return WithDrawMoney.objects.filter(user=self.request.user).order_by('-add_time')
         return []
@@ -273,6 +291,7 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         withdraw_obj = self.get_object()
         user_obj = UserProfile.objects.filter(id=withdraw_obj.user_id)[0]
         if not user_obj.is_proxy:
+            print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
                 resp['msg'].append('状态修改成功')

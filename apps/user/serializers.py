@@ -183,6 +183,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     total_money = serializers.CharField(read_only=True)
     proxys = ProxysSerializer(many=True, read_only=True)
     banks = BankInfoSerializer(many=True, read_only=True)
+    add_money = serializers.DecimalField(max_digits=7,decimal_places=2,help_text='加款')
+    def validated_add_money(self,data):
 
     class Meta:
         model = UserProfile

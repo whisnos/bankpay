@@ -15,7 +15,12 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from user.models import UserProfile
 from user.serializers import RegisterUserSerializer, UserDetailSerializer
 from django.contrib.auth import get_user_model
+
+from utils.make_code import make_uuid_code, make_auth_code
+
 User = get_user_model()
+
+
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         try:
@@ -25,6 +30,7 @@ class CustomModelBackend(ModelBackend):
         except Exception as e:
             # print(e)
             return None
+
 
 class UserListPagination(PageNumberPagination):
     page_size = 10
@@ -71,32 +77,127 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
         return self.request.user
 
     def update(self, request, *args, **kwargs):
-        resp={'msg':[]}
+        resp = {'msg': []}
+        code = 200
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         password = self.request.data.get('password', '')
         password2 = self.request.data.get('password2', '')
         notify_url = self.request.data.get('notify_url', '')
+        get_proxyid = self.request.data.get('id', '')
         add_money = self.request.data.get('add_money', '')
         minus_money = self.request.data.get('minus_money', '')
-        qq = self.request.data.get('qq', '')
-        user = self.get_object()
-        if password == password2:
+        uid = self.request.data.get('uid', '')
+        auth_code = self.request.data.get('auth_code', '')
+
+        # tuoxie 修改 tuoxie001
+        if not self.request.user.is_proxy:
+            id_list = [user_obj.id for user_obj in UserProfile.objects.filter(proxy_id=self.request.user.id)]
+            if get_proxyid:
+                if int(get_proxyid) in id_list:
+                    user = UserProfile.objects.filter(id=get_proxyid)[0]
+                    if add_money:
+                        user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
+                        resp['msg'].append('加款成功')
+                    if float(minus_money) > 0:
+                        if Decimal(minus_money) < Decimal(user.total_money):
+                            user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
+                            resp['msg'].append('扣款成功')
+                        else:
+                            code = 404
+                            resp['msg'].append('余额不足，扣款失败')
+                    else:
+                        code = 400
+                        resp['msg'].append('金额异常，请重新输入')
+
+
+                    if password == password2:
+                        if password:
+                            user.set_password(password)
+                            resp['msg'].append('密码修改成功')
+                    else:
+                        code = 404
+                        resp['msg'].append('输入密码不一致')
+
+                    if notify_url:
+                        user.notify_url = notify_url
+                        resp['msg'].append('回调修改成功')
+
+                    if uid:
+                        user.uid = make_uuid_code()
+                        resp['msg'].append('uid修改成功')
+                    if auth_code:
+                        user.auth_code = make_auth_code()
+                        resp['msg'].append('auth_code修改成功')
+
+                    user.save()
+                else:
+                    code = 404
+                    resp['msg'].append('修改代理号不存在')
+
+        # 修改tuoxie本身数据
+        if not get_proxyid and not self.request.user.is_proxy:
+            qq = self.request.data.get('qq', '')
+            user = self.get_object()
+
+            if add_money:
+                user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
+                resp['msg'].append('加款成功')
+            if minus_money:
+                if Decimal(minus_money) < Decimal(user.total_money):
+                    user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
+                    resp['msg'].append('扣款成功')
+                else:
+                    code = 404
+                    resp['msg'].append('余额不足，扣款失败')
+
+            if password == password2:
+                if password:
+                    user.set_password(password)
+                    resp['msg'].append('密码修改成功')
+            else:
+                code = 404
+                resp['msg'].append('输入密码不一致')
+
+            if notify_url:
+                user.notify_url = notify_url
+                resp['msg'].append('回调修改成功')
+            if qq:
+                user.qq = qq
+
+            if uid:
+                user.uid = make_uuid_code()
+                resp['msg'].append('uid修改成功')
+            if auth_code:
+                user.auth_code = make_auth_code()
+                resp['msg'].append('auth_code修改成功')
+            user.save()
+
+        # tuoxie001 修改自己
+        if self.request.user.is_proxy:
+            user = self.get_object()
             if password:
-                user.set_password(password)
-                resp['msg'].append('密码修改成功')
-        else:
-            resp['msg'].append('输入密码不一致')
-        if notify_url:
-            user.notify_url = notify_url
-            resp['msg'].append('回调修改成功')
-        if qq:
-            user.qq = qq
-        if add_money:
-            user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
-            resp['msg'].append('加款成功')
-        if minus_money:
-            user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
-            resp['msg'].append('扣款成功')
-        user.save()
-        return Response(data=resp,status=status.HTTP_200_OK)
+                if password == password2:
+                    user.set_password(password)
+                    resp['msg'].append('密码修改成功')
+                elif password != password2:
+                    code=404
+                    resp['msg'].append('输入密码不一致')
+                else:
+                    code = 403
+                    resp['msg'].append('改账号无权限')
+            if notify_url:
+                user.notify_url = notify_url
+                resp['msg'].append('回调修改成功')
+            if uid:
+                user.uid = make_uuid_code()
+                resp['msg'].append('uid修改成功')
+            if auth_code:
+                user.auth_code = make_auth_code()
+                resp['msg'].append('auth_code修改成功')
+            else:
+                code = 403
+                resp['msg'].append('改账号无权限')
+
+            user.save()
+        return Response(data=resp, status=code)
