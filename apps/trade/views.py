@@ -139,32 +139,51 @@ class GetPayView(views.APIView):
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
-            bank_queryet = BankInfo.objects.filter(is_active=True).all()
+
+            bank_queryet = BankInfo.objects.filter(is_active=True,user_id=user.proxy_id).all()
             if not bank_queryet:
                 resp['code'] = 404
                 resp['msg'] = '收款商户未激活'
                 return Response(resp)
 
             # 关闭超时订单
-            now_time = datetime.datetime.now() - datetime.timedelta(days=2)
+            now_time = datetime.datetime.now() - datetime.timedelta(days=1)
             order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
                 pay_status='TRADE_CLOSE')
 
-            # 处理金额
-            while True:
-                order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount)
-                if not order_queryset:
+            # # 处理金额
+            # while True:
+            #     order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount)
+            #     if not order_queryset:
+            #         break
+            #     total_amount = (Decimal(total_amount) + Decimal(random.uniform(-0.9, 0.9))).quantize(Decimal('0.00'))# 处理金额
+            while Decimal(total_amount) < (Decimal(total_amount) + 1):
+                for bank in bank_queryet:
+                    order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount,bank_tel=bank.bank_tel)
+                    if not order_queryset:
+                        name = bank.name
+                        account_num = bank.account_num
+                        bank_type = bank.bank_type
+                        open_bank = bank.open_bank
+                        bank_tel = bank.bank_tel
+                        break
+                    else:
+                        continue
+                if order_queryset:
+                    total_amount=(Decimal(total_amount)+Decimal(random.uniform(-0.9,0.9))).quantize(Decimal('0.00'))
+                else:
                     break
-                total_amount = (Decimal(total_amount) + Decimal(random.random())).quantize(Decimal('0.00'))
+
+                # total_amount = (Decimal(total_amount) + Decimal(random.uniform(-0.9,0.9))).quantize(Decimal('0.00'))
             print('total_amount', total_amount)
 
             # 随机抽一张收款卡
-            bank_obj = random.choice(bank_queryet)
-            name = bank_obj.name
-            account_num = bank_obj.account_num
-            bank_type = bank_obj.bank_type
-            open_bank = bank_obj.open_bank
-            bank_tel = bank_obj.bank_tel
+            # bank_obj = random.choice(bank_queryet)
+            # name = bank_obj.name
+            # account_num = bank_obj.account_num
+            # bank_type = bank_obj.bank_type
+            # open_bank = bank_obj.open_bank
+            # bank_tel = bank_obj.bank_tel
 
             order = OrderInfo()
             order.user_id = user.id
@@ -211,11 +230,11 @@ class VerifyView(views.APIView):
             bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
 
             # 更新用户收款
-            user_obj.total_money = '%.2f' % (user_obj.total_money + float(money))
+            user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
             user_obj.save()
 
             # 更新商家存钱
-            bank_obj.total_money = '%.2f' % (bank_obj.total_money + float(money))
+            bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
             bank_obj.last_time = datetime.datetime.now()
             bank_obj.save()
             return Response(resp)
@@ -231,6 +250,11 @@ class VerifyView(views.APIView):
             resp['msg'] = '存在多笔订单，需手动处理'
             return Response(resp)
 
+class VerifyViewset(mixins.UpdateModelMixin):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    def update(self, request, *args, **kwargs):
+        pass
 
 class AddMoney(views.APIView):
     def post(self, request):
@@ -254,6 +278,14 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         else:
             return WithDrawSerializer
 
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [IsAuthenticated()]
+        elif self.action == "create":
+            return []
+        else:
+            return []
+
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
@@ -261,24 +293,14 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         if not user.is_proxy:
             user_list = []
             user_queryset = UserProfile.objects.filter(proxy_id=user.id)
-            print(len(user_queryset))
 
             if not user_queryset:
                 return WithDrawMoney.objects.filter(user=self.request.user).order_by('-add_time')
 
             for user_obj in user_queryset:
                 user_list.append(user_obj.id)
-            print('user_list', user_list)
-            return WithDrawMoney.objects.filter(user_id__in=user_list)
+            return WithDrawMoney.objects.filter(user_id__in=user_list).order_by('-add_time')
 
-
-            # if len(user_queryset) == 1:
-            #     return WithDrawMoney.objects.filter(Q(user=user_queryset[0])).order_by('-add_time')
-            # elif len(user_queryset) == 2:
-            #     return WithDrawMoney.objects.filter(Q(user=user_queryset[0]) | Q(user=user_queryset[1])).order_by('-add_time')
-            # elif len(user_queryset) == 3:
-            #     return WithDrawMoney.objects.filter(
-            #         Q(user=user_queryset[0]) | Q(user=user_queryset[1]) | Q(user=user_queryset[2])).order_by('-add_time')
         if user:
             return WithDrawMoney.objects.filter(user=self.request.user).order_by('-add_time')
         return []
@@ -289,13 +311,15 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         serializer.is_valid(raise_exception=True)
         withdraw_status = self.request.data.get('withdraw_status', '')
         withdraw_obj = self.get_object()
-        user_obj = UserProfile.objects.filter(id=withdraw_obj.user_id)[0]
-        if not user_obj.is_proxy:
+        code = 200
+        if not self.request.user.is_proxy:
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
+                code=200
                 resp['msg'].append('状态修改成功')
         else:
+            code=403
             resp['msg'].append('该用户没有操作权限')
         withdraw_obj.save()
-        return Response(data=resp, status=status.HTTP_200_OK)
+        return Response(data=resp, status=code)

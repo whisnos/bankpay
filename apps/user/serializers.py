@@ -131,13 +131,15 @@ class ProxysSerializer(serializers.ModelSerializer):
         return OrderInfo.objects.filter(user=obj, pay_status='TRADE_SUCCESS', add_time__gte=time.strftime('%Y-%m-%d',
                                                                                                           time.localtime(
                                                                                                               time.time()))).all().count()
+
     # 今日未付款订单数
     today_count_paying_num = serializers.SerializerMethodField(read_only=True)
 
     def get_today_count_paying_num(self, obj):
         return OrderInfo.objects.filter(user=obj, pay_status='PAYING', add_time__gte=time.strftime('%Y-%m-%d',
-                                                                                                          time.localtime(
-                                                                                                              time.time()))).all().count()
+                                                                                                   time.localtime(
+                                                                                                       time.time()))).all().count()
+
     # 总订单数 - 包括支付中
     total_count_num = serializers.SerializerMethodField(read_only=True)
 
@@ -165,8 +167,9 @@ class ProxysSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy', 'total_money', 'total_count_num',
-                  'total_count_success_num', 'total_count_fail_num', 'total_count_paying_num', 'today_receive_all','today_receive_success',
-                  'today_count_num', 'today_count_success_num','today_count_paying_num']
+                  'total_count_success_num', 'total_count_fail_num', 'total_count_paying_num', 'today_receive_all',
+                  'today_receive_success',
+                  'today_count_num', 'today_count_success_num', 'today_count_paying_num']
 
 
 class BankInfoSerializer(serializers.ModelSerializer):
@@ -180,17 +183,31 @@ class UserDetailSerializer(serializers.ModelSerializer):
     uid = serializers.CharField(label='用户uid', read_only=True, allow_blank=False, help_text='用户uid')
     mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
     auth_code = serializers.CharField(label='用户授权码', read_only=True, allow_blank=False, help_text='用户授权码')
+    is_proxy = serializers.BooleanField(label='是否代理', read_only=True)
     total_money = serializers.CharField(read_only=True)
     proxys = ProxysSerializer(many=True, read_only=True)
     banks = BankInfoSerializer(many=True, read_only=True)
-    add_money = serializers.DecimalField(max_digits=7,decimal_places=2,help_text='加款')
-    def validated_add_money(self,data):
-        patt = re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data))
-        if data:
-            pass
+
+    add_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='加款', write_only=True,
+                                         required=False)
+    minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
+                                           required=False)
+
+    def validate_add_money(self, data):
+        if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data)):
+            raise serializers.ValidationError('金额异常，请重新输入')
         if data == 0:
-            raise serializers.ValidationError('金额输入异常')
+            raise serializers.ValidationError('金额异常，请重新输入')
         return data
+
+    def validate_minus_money(self, data):
+        if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data)):
+            raise serializers.ValidationError('金额异常，请重新输入')
+        if data == 0:
+            raise serializers.ValidationError('金额异常，请重新输入')
+        return data
+
     class Meta:
         model = UserProfile
-        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'proxys', 'banks']
+        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'proxys', 'banks',
+                  'minus_money', 'add_money']

@@ -99,16 +99,16 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                     if add_money:
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
-                    if float(minus_money) > 0:
+                    if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                         else:
                             code = 404
                             resp['msg'].append('余额不足，扣款失败')
-                    else:
-                        code = 400
-                        resp['msg'].append('金额异常，请重新输入')
+                    # else:
+                    #     code = 400
+                    #     resp['msg'].append('金额异常，请重新输入')
 
 
                     if password == password2:
