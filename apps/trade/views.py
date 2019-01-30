@@ -17,10 +17,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from trade.filters import WithDrawFilter
+from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
-    WithDrawCreateSerializer
+    WithDrawCreateSerializer, VerifyPaySerializer
 from user.models import BankInfo, UserProfile
 from utils.make_code import make_short_code
 from utils.permissions import IsOwnerOrReadOnly
@@ -40,8 +40,8 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
     pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
-    # filter_backends = (DjangoFilterBackend,)
-    # filter_class = OrdersFilter
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = OrdersFilter
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -140,14 +140,14 @@ class GetPayView(views.APIView):
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
 
-            bank_queryet = BankInfo.objects.filter(is_active=True,user_id=user.proxy_id).all()
+            bank_queryet = BankInfo.objects.filter(is_active=True, user_id=user.proxy_id).all()
             if not bank_queryet:
                 resp['code'] = 404
                 resp['msg'] = '收款商户未激活'
                 return Response(resp)
 
             # 关闭超时订单
-            now_time = datetime.datetime.now() - datetime.timedelta(days=1)
+            now_time = datetime.datetime.now() - datetime.timedelta(minutes=10)
             order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
                 pay_status='TRADE_CLOSE')
 
@@ -157,9 +157,10 @@ class GetPayView(views.APIView):
             #     if not order_queryset:
             #         break
             #     total_amount = (Decimal(total_amount) + Decimal(random.uniform(-0.9, 0.9))).quantize(Decimal('0.00'))# 处理金额
-            while Decimal(total_amount) < (Decimal(total_amount) + 1):
+            while True:
                 for bank in bank_queryet:
-                    order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount,bank_tel=bank.bank_tel)
+                    order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount,
+                                                              bank_tel=bank.bank_tel)
                     if not order_queryset:
                         name = bank.name
                         account_num = bank.account_num
@@ -170,7 +171,8 @@ class GetPayView(views.APIView):
                     else:
                         continue
                 if order_queryset:
-                    total_amount=(Decimal(total_amount)+Decimal(random.uniform(-0.9,0.9))).quantize(Decimal('0.00'))
+                    total_amount = (Decimal(total_amount) + Decimal(random.uniform(-0.9, 0.9))).quantize(
+                        Decimal('0.00'))
                 else:
                     break
 
@@ -216,45 +218,110 @@ class VerifyView(views.APIView):
             processed_dict[key] = value
         money = processed_dict.get('money', '')
         bank_tel = processed_dict.get('bank_tel', '')
+        key = processed_dict.get('key', '')
+        new_temp = money+bank_tel
+        m = hashlib.md5()
+        m.update(new_temp.encode('utf-8'))
+        my_key = m.hexdigest()
+        if key == my_key:
+            order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money, bank_tel=bank_tel)
+            print('order_queryset', order_queryset)
+            if len(order_queryset) == 1:
+                order_obj = order_queryset[0]
+                order_obj.pay_status = 'TRADE_SUCCESS'
+                order_obj.pay_time = datetime.datetime.now()
+                order_obj.save()
+                user_id = order_obj.user_id
+                user_obj = UserProfile.objects.filter(id=user_id)[0]
+                account_num = order_obj.account_num
+                bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
 
-        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money, bank_tel=bank_tel)
-        print('order_queryset', order_queryset)
-        if len(order_queryset) == 1:
-            order_obj = order_queryset[0]
-            order_obj.pay_status = 'TRADE_SUCCESS'
-            order_obj.pay_time = datetime.datetime.now()
-            order_obj.save()
-            user_id = order_obj.user_id
-            user_obj = UserProfile.objects.filter(id=user_id)[0]
-            account_num = order_obj.account_num
-            bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
+                # 更新用户收款
+                user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
+                user_obj.save()
 
-            # 更新用户收款
-            user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
-            user_obj.save()
+                # 更新商家存钱
+                bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
+                bank_obj.last_time = datetime.datetime.now()
+                bank_obj.save()
+                return Response(resp)
+            elif not order_queryset:
+                resp['msg'] = '订单不存在'
+                return Response(resp)
+            else:
+                # 当post 过来的 订单 金额 和 银行电话 都相同时，存在多笔订单 无法识别
+                resp['orders'] = []
+                for order in order_queryset:
+                    new_dict = {'单号：': order.order_no, '订单时间：': order.add_time}
+                    resp['orders'].append(new_dict)
+                resp['msg'] = '存在多笔订单，需手动处理'
+                return Response(resp)
+        resp['msg'] = '无权限'
+        return Response(resp)
 
-            # 更新商家存钱
-            bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
-            bank_obj.last_time = datetime.datetime.now()
-            bank_obj.save()
-            return Response(resp)
-        elif not order_queryset:
-            resp['msg'] = '订单不存在'
-            return Response(resp)
-        else:
-            # 当post 过来的 订单 金额 和 银行电话 都相同时，存在多笔订单 无法识别
-            resp['orders'] = []
-            for order in order_queryset:
-                new_dict = {'单号：': order.order_no, '订单时间：': order.add_time}
-                resp['orders'].append(new_dict)
-            resp['msg'] = '存在多笔订单，需手动处理'
-            return Response(resp)
 
-class VerifyViewset(mixins.UpdateModelMixin):
+class VerifyViewset(mixins.CreateModelMixin,
+                    mixins.UpdateModelMixin,
+                    viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    queryset = OrderInfo.objects.all()
+    authentication_classes = (JSONWebTokenAuthentication,SessionAuthentication)
+    serializer_class = VerifyPaySerializer
+
     def update(self, request, *args, **kwargs):
-        pass
+        user = self.request.user
+        resp = {'msg': '操作成功'}
+        if not user.is_proxy:
+            processed_dict = {}
+            for key, value in self.request.data.items():
+                processed_dict[key] = value
+            money = processed_dict.get('total_amount', '')
+            bank_tel = processed_dict.get('bank_tel', '')
+            key = processed_dict.get('key', '')
+            new_temp = str(money) + str(bank_tel)
+            m = hashlib.md5()
+            m.update(new_temp.encode('utf-8'))
+            my_key = m.hexdigest()
+            if key == my_key:
+                order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money, bank_tel=bank_tel)
+                if len(order_queryset) == 1:
+                    order_obj = order_queryset[0]
+                    order_obj.pay_status = 'TRADE_SUCCESS'
+                    order_obj.pay_time = datetime.datetime.now()
+                    order_obj.save()
+                    user_id = order_obj.user_id
+                    user_obj = UserProfile.objects.filter(id=user_id)[0]
+                    account_num = order_obj.account_num
+                    bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
+
+                    # 更新用户收款
+                    user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
+                    user_obj.save()
+
+                    # 更新商家存钱
+                    bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
+                    bank_obj.last_time = datetime.datetime.now()
+                    bank_obj.save()
+                    code = 200
+                    return Response(data=resp, status=code)
+                elif not order_queryset:
+                    code = 400
+                    resp['msg'] = '订单不存在，联系管理员处理'
+                    return Response(data=resp, status=code)
+                else:
+                    # 当post 过来的 订单 金额 和 银行电话 都相同时，存在多笔订单 无法识别
+                    resp['orders'] = []
+                    for order in order_queryset:
+                        new_dict = {'单号：': order.order_no, '订单时间：': order.add_time}
+                        resp['orders'].append(new_dict)
+                    resp['msg'] = '存在多笔订单，需手动处理'
+                    code = 400
+                    return Response(data=resp, status=code)
+
+        code = 403
+        resp['msg'] = '无操作权限'
+        return Response(data=resp, status=code)
+
 
 class AddMoney(views.APIView):
     def post(self, request):
@@ -282,9 +349,9 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
-            return []
+            return [IsAuthenticated()]
         else:
-            return []
+            return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -316,10 +383,10 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
-                code=200
+                code = 200
                 resp['msg'].append('状态修改成功')
         else:
-            code=403
+            code = 403
             resp['msg'].append('该用户没有操作权限')
         withdraw_obj.save()
         return Response(data=resp, status=code)

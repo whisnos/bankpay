@@ -9,7 +9,7 @@ from trade.models import OrderInfo
 from user.models import UserProfile, BankInfo
 from django.db.models import Q
 
-from utils.make_code import make_uuid_code, make_auth_code
+from utils.make_code import make_uuid_code, make_auth_code, make_login_token
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
@@ -47,15 +47,33 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        del validated_data['password2']
-        user = UserProfile.objects.create(**validated_data)
-        user.set_password(validated_data['password'])
-        user.uid = make_uuid_code()
-        user.auth_code = make_auth_code()
-        user.is_active = False
-        user.save()
-        return user
+        user_up = self.context['request'].user
+        if user_up.is_superuser:
+            del validated_data['password2']
+            user = UserProfile.objects.create(**validated_data)
+            user.set_password(validated_data['password'])
+            user.uid = make_uuid_code()
+            user.auth_code = make_auth_code()
+            user.login_token = make_login_token()
+            user.is_active = False
 
+            user.level = 2
+            user.save()
+            return user
+        if not user_up.is_proxy:
+            del validated_data['password2']
+            user = UserProfile.objects.create(**validated_data)
+            user.set_password(validated_data['password'])
+            user.uid = make_uuid_code()
+            user.auth_code = make_auth_code()
+            user.login_token = make_login_token()
+            user.is_active = False
+
+            user.proxy_id = user_up.id
+            user.is_proxy = True
+            user.save()
+            return user
+        return user_up
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(label='密码', write_only=True, required=True, allow_blank=False, min_length=6,
@@ -166,7 +184,7 @@ class ProxysSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy', 'total_money', 'total_count_num',
+        fields = ['id','username', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy','is_active', 'total_money', 'total_count_num',
                   'total_count_success_num', 'total_count_fail_num', 'total_count_paying_num', 'today_receive_all',
                   'today_receive_success',
                   'today_count_num', 'today_count_success_num', 'today_count_paying_num']
@@ -193,6 +211,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
                                            required=False)
 
+    is_active = serializers.BooleanField(label='是否激活',required=False)
     def validate_add_money(self, data):
         if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data)):
             raise serializers.ValidationError('金额异常，请重新输入')
@@ -209,5 +228,5 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'proxys', 'banks',
+        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active','proxys', 'banks',
                   'minus_money', 'add_money']

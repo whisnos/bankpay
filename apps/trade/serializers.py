@@ -225,4 +225,8 @@ class TotalNumSerializer(serializers.Serializer):
                                      user=user, add_time__gte=min_time, add_time__lte=max_time).aggregate(Count('id'))
         a.update(b)
         return (a)
-#
+
+class VerifyPaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderInfo
+        fields = '__all__'

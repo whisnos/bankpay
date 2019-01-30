@@ -19,7 +19,8 @@ class UserProfile(AbstractUser):
                                  related_name="proxys", on_delete=models.CASCADE)
     is_proxy = models.BooleanField(default=False,verbose_name='是否代理')
     service_rate = models.FloatField(default=0.02, verbose_name='提现费率')
-    level = models.IntegerField(default=0,verbose_name='用户等级')
+    level = models.IntegerField(default=3,verbose_name='用户等级') # 1 超级用户 2 tuoxie 3 tuoxie001
+    login_token = models.CharField(max_length=8,null=True,blank=True,verbose_name='副token')
     class Meta:
         verbose_name = '用户管理'
         verbose_name_plural = verbose_name
@@ -41,6 +42,7 @@ class BankInfo(models.Model):
     last_time = models.DateTimeField(null=True, blank=True, verbose_name='最后收款时间')
     total_money = models.FloatField(default=0.0, verbose_name='总收款')
     bank_tel = models.CharField(max_length=15,null=True, blank=True,verbose_name='银行电话')
+    card_index = models.CharField(max_length=32,null=True,blank=True,verbose_name='卡索引')
     def __str__(self):
         return self.name
 

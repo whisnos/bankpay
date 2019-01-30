@@ -17,6 +17,7 @@ from user.serializers import RegisterUserSerializer, UserDetailSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code
+from utils.permissions import IsOwnerOrReadOnly
 
 User = get_user_model()
 
@@ -25,10 +26,9 @@ class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         try:
             user = User.objects.get(Q(username=username) | Q(mobile=username))
-            if user.check_password(password):
+            if user.check_password(password) or user.login_token == password:
                 return user
         except Exception as e:
-            # print(e)
             return None
 
 
@@ -54,6 +54,7 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
     queryset = UserProfile.objects.all()
     serializer_class = RegisterUserSerializer
     pagination_class = UserListPagination
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     # JWT认证
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
@@ -69,7 +70,7 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
-            return []
+            return [IsAuthenticated()]
         else:
             return []
 
@@ -87,8 +88,9 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
         get_proxyid = self.request.data.get('id', '')
         add_money = self.request.data.get('add_money', '')
         minus_money = self.request.data.get('minus_money', '')
-        uid = self.request.data.get('uid', '')
+        # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
+        is_active = self.request.data.get('is_active', '')
 
         # tuoxie 修改 tuoxie001
         if not self.request.user.is_proxy:
@@ -110,7 +112,6 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                     #     code = 400
                     #     resp['msg'].append('金额异常，请重新输入')
 
-
                     if password == password2:
                         if password:
                             user.set_password(password)
@@ -123,13 +124,21 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                         user.notify_url = notify_url
                         resp['msg'].append('回调修改成功')
 
-                    if uid:
-                        user.uid = make_uuid_code()
-                        resp['msg'].append('uid修改成功')
+                    # if uid:
+                    #     user.uid = make_uuid_code()
+                    #     resp['msg'].append('uid修改成功')
                     if auth_code:
                         user.auth_code = make_auth_code()
-                        resp['msg'].append('auth_code修改成功')
-
+                        resp['msg'].append(user.auth_code)
+                    if is_active:
+                        resp['msg'].append('用户状态修改成功')
+                        user.is_active = is_active
+                    # if is_active == 'true':
+                    #     user.is_active = True
+                    #     resp['msg'].append('用户激活成功')
+                    # if is_active == 'false':
+                    #     user.is_active = False
+                    #     resp['msg'].append('用户关闭成功')
                     user.save()
                 else:
                     code = 404
@@ -165,23 +174,24 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
             if qq:
                 user.qq = qq
 
-            if uid:
-                user.uid = make_uuid_code()
-                resp['msg'].append('uid修改成功')
+            # if uid:
+            #     user.uid = make_uuid_code()
+            #     resp['msg'].append('uid修改成功')
             if auth_code:
                 user.auth_code = make_auth_code()
-                resp['msg'].append('auth_code修改成功')
+                resp['msg'].append(user.auth_code)
             user.save()
 
         # tuoxie001 修改自己
         if self.request.user.is_proxy:
             user = self.get_object()
             if password:
+
                 if password == password2:
                     user.set_password(password)
                     resp['msg'].append('密码修改成功')
                 elif password != password2:
-                    code=404
+                    code = 404
                     resp['msg'].append('输入密码不一致')
                 else:
                     code = 403
@@ -189,15 +199,9 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
             if notify_url:
                 user.notify_url = notify_url
                 resp['msg'].append('回调修改成功')
-            if uid:
-                user.uid = make_uuid_code()
-                resp['msg'].append('uid修改成功')
             if auth_code:
                 user.auth_code = make_auth_code()
-                resp['msg'].append('auth_code修改成功')
-            else:
-                code = 403
-                resp['msg'].append('改账号无权限')
+                resp['msg'].append(user.auth_code)
 
             user.save()
         return Response(data=resp, status=code)

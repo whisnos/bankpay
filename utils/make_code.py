@@ -25,6 +25,15 @@ def make_auth_code(length=32):
     return new_str
 
 
+def make_login_token(length=8):
+    from_str = '123567890zxcvbnmasdfghjklqwertyuiop'
+    new_str = ''
+    for i in range(length):
+        a = str(random.choice(from_str))
+        new_str += a
+    return new_str
+
+
 def make_short_code(length):
     code_source = '123456789'
     code = ''
