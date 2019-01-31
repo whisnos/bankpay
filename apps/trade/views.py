@@ -115,10 +115,7 @@ class GetPayView(views.APIView):
         if not user_queryset:
             resp['msg'] = 'uid或者auth_code错误，请重试~~'
             return Response(resp, status=404)
-        patt = re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', total_amount)
-        try:
-            patt.group()
-        except:
+        if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(total_amount)):
             resp['msg'] = '金额输入错误，请重试~~0.01到5万间'
             return Response(resp, status=404)
         if not order_id:
@@ -131,7 +128,7 @@ class GetPayView(views.APIView):
         user = user_queryset[0]
         # 加密 uid + auth_code + total_amount + return_url + order_id
         auth_code = user.auth_code
-        new_temp = str(uid + auth_code + total_amount + return_url + order_id)
+        new_temp = str(str(uid) + str(auth_code) + str(total_amount) + str(return_url) + str(order_id))
         m = hashlib.md5()
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
@@ -260,9 +257,7 @@ class VerifyView(views.APIView):
         return Response(resp)
 
 
-class VerifyViewset(mixins.CreateModelMixin,
-                    mixins.UpdateModelMixin,
-                    viewsets.GenericViewSet):
+class VerifyViewset(mixins.UpdateModelMixin,viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     queryset = OrderInfo.objects.all()
     authentication_classes = (JSONWebTokenAuthentication,SessionAuthentication)
@@ -376,10 +371,10 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         resp = {'msg': []}
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        withdraw_status = self.request.data.get('withdraw_status', '')
         withdraw_obj = self.get_object()
         code = 200
         if not self.request.user.is_proxy:
+            withdraw_status = self.request.data.get('withdraw_status', '')
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status

@@ -27,7 +27,7 @@ route.register(r'users', UserProfileViewset, base_name="users")
 route.register(r'orders', OrderViewset, base_name="orders")
 route.register(r'banks', BankViewset, base_name="banks")
 route.register(r'drawings',WithDrawViewset,base_name='moneys')
-route.register(r'verifys',VerifyViewset,base_name='verifys')
+route.register(r'verifys',VerifyViewset,base_name='verifys') # 验证 手机揽收 后的信息
 
 urlpatterns = [
     # path('admin/', admin.site.urls),

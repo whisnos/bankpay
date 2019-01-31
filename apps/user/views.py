@@ -108,9 +108,6 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                         else:
                             code = 404
                             resp['msg'].append('余额不足，扣款失败')
-                    # else:
-                    #     code = 400
-                    #     resp['msg'].append('金额异常，请重新输入')
 
                     if password == password2:
                         if password:
@@ -124,21 +121,12 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                         user.notify_url = notify_url
                         resp['msg'].append('回调修改成功')
 
-                    # if uid:
-                    #     user.uid = make_uuid_code()
-                    #     resp['msg'].append('uid修改成功')
                     if auth_code:
                         user.auth_code = make_auth_code()
                         resp['msg'].append(user.auth_code)
                     if is_active:
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
-                    # if is_active == 'true':
-                    #     user.is_active = True
-                    #     resp['msg'].append('用户激活成功')
-                    # if is_active == 'false':
-                    #     user.is_active = False
-                    #     resp['msg'].append('用户关闭成功')
                     user.save()
                 else:
                     code = 404
@@ -174,9 +162,6 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
             if qq:
                 user.qq = qq
 
-            # if uid:
-            #     user.uid = make_uuid_code()
-            #     resp['msg'].append('uid修改成功')
             if auth_code:
                 user.auth_code = make_auth_code()
                 resp['msg'].append(user.auth_code)
