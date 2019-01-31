@@ -43,6 +43,7 @@ class BankInfo(models.Model):
     total_money = models.FloatField(default=0.0, verbose_name='总收款')
     bank_tel = models.CharField(max_length=15,null=True, blank=True,verbose_name='银行电话')
     card_index = models.CharField(max_length=32,null=True,blank=True,verbose_name='卡索引')
+    bank_mark = models.CharField(max_length=20,null=True,blank=True,verbose_name='银行编号')
     def __str__(self):
         return self.name
 

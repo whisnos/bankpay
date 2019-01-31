@@ -91,6 +91,7 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
+        service_rate = self.request.data.get('service_rate', '')
 
         # tuoxie 修改 tuoxie001
         if not self.request.user.is_proxy:
@@ -127,6 +128,9 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
                     if is_active:
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
+                    if service_rate:
+                        resp['msg'].append('费率修改成功')
+                        user.service_rate = service_rate
                     user.save()
                 else:
                     code = 404
@@ -165,6 +169,10 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
             if auth_code:
                 user.auth_code = make_auth_code()
                 resp['msg'].append(user.auth_code)
+
+            if service_rate:
+                resp['msg'].append('费率修改成功')
+                user.service_rate = service_rate
             user.save()
 
         # tuoxie001 修改自己
@@ -187,6 +195,9 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
             if auth_code:
                 user.auth_code = make_auth_code()
                 resp['msg'].append(user.auth_code)
+
+            if service_rate:
+                resp['msg'].append('费率修改失败')
 
             user.save()
         return Response(data=resp, status=code)

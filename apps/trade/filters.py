@@ -11,10 +11,10 @@ class OrdersFilter(filters.FilterSet):
     user_msg = filters.CharFilter(field_name="user_msg", lookup_expr='icontains')
     min_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='gte')
     max_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='lte')
-
+    user_id = filters.NumberFilter(field_name='user_id',help_text="根据用户ID")
     class Meta:
         model = OrderInfo
-        fields = ['min_price', 'max_price', 'order_no', 'order_id','min_time', 'max_time', 'user_msg']
+        fields = ['min_price', 'max_price', 'order_no', 'order_id','min_time', 'max_time', 'user_msg','user_id']
 
 
 class WithDrawFilter(filters.FilterSet):
@@ -25,7 +25,7 @@ class WithDrawFilter(filters.FilterSet):
     user_msg = filters.CharFilter(field_name="user_msg", lookup_expr='icontains')
     min_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='gte')
     max_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='lte')
-
+    user_id = filters.NumberFilter(field_name='user_id', help_text="根据用户ID")
     class Meta:
         model = WithDrawMoney
-        fields = ['min_money', 'max_money', 'user_msg', 'min_time', 'max_time', 'user_msg','withdraw_no']
+        fields = ['min_money', 'max_money', 'user_msg', 'min_time', 'max_time', 'user_msg','withdraw_no','user_id']

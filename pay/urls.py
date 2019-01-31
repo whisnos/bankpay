@@ -20,7 +20,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
 from user.views import UserProfileViewset
-from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, AddMoney, WithDrawViewset,VerifyViewset
+from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, AddMoney, WithDrawViewset,VerifyViewset,pay
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -37,4 +37,5 @@ urlpatterns = [
     url(r'^get_pay/', GetPayView.as_view(), name="get_pay"),
     url(r'^verify_pay/', VerifyView.as_view(), name="verify_pay"),
     url(r'^add_money/', AddMoney.as_view(), name="add_money"),
+    url(r'^pay/', pay, name="pay"),
 ]

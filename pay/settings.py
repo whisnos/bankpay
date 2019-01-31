@@ -139,3 +139,4 @@ JWT_AUTH = {
 AUTHENTICATION_BACKENDS = (
     'user.views.CustomModelBackend',
 )
+

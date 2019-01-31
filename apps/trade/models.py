@@ -23,7 +23,7 @@ class OrderInfo(models.Model):
     order_id = models.CharField(max_length=100, null=True, blank=True, verbose_name='商户订单号')
     bank_tel = models.CharField(max_length=15,null=True, blank=True, verbose_name='银行电话')
     account_num = models.CharField(max_length=32,null=True,blank=True,verbose_name='银行卡号')
-
+    pay_url = models.CharField(max_length=300,null=True,blank=True,verbose_name='支付链接')
     def __str__(self):
         return str(self.order_no)
 
@@ -50,7 +50,7 @@ class WithDrawMoney(models.Model):
     full_name = models.CharField(max_length=20, null=True, blank=True, verbose_name='姓名')
     # freeze_money = models.FloatField(default=0.0, verbose_name='冻结金额')
     # default_flag = models.BooleanField(default=False, verbose_name='旗帜')
-    # time_rate = models.FloatField(null=True, blank=True, verbose_name='当时费率')
+    time_rate = models.FloatField(null=True, blank=True, verbose_name='当时费率')
     open_bank = models.CharField(max_length=50, null=True, blank=True, verbose_name='开户行')
     receive_money_info = models.CharField(max_length=200, null=True, blank=True, verbose_name='收款信息')
 
