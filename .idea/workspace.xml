@@ -133,7 +133,7 @@
       <find>改账号无权限</find>
       <find>jwt_response_payload_handler</find>
       <find>md5</find>
-      <find>the_time = datetime.datetime.now() - datetime.timedelta(hours=1)</find>
+      <find />
       <find>总金额</find>
       <find>in</find>
       <find>get_hour_success_num</find>
