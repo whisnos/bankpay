@@ -458,7 +458,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_time = time.strftime('%Y-%m-%d', time.localtime(time.time()))
     yesterday_time = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     month_time = datetime.datetime(datetime.date.today().year, datetime.date.today().month, 1)
-    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M',read_only=True)
     username = serializers.CharField(label='用户名', read_only=True, allow_blank=False, help_text='用户名')
     uid = serializers.CharField(label='用户uid', read_only=True, allow_blank=False, help_text='用户uid')
     mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
@@ -727,7 +727,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active',
+        fields = ['id','username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active',
                   'proxys', 'banks',
                   'minus_money', 'add_money', 'service_rate','add_time', 'hour_total_num',
                   'hour_success_num', 'hour_rate', 'hour_money_all', 'hour_money_success', 'today_total_num',

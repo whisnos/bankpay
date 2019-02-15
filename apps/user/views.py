@@ -129,6 +129,8 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
+        print('is_active',is_active)
+        print('get_proxyid',get_proxyid)
         service_rate = self.request.data.get('service_rate', '')
 
         # tuoxie 修改 tuoxie001
@@ -164,6 +166,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.auth_code = make_auth_code()
                         resp['msg'].append(user.auth_code)
                     if is_active:
+                        print(111)
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
                     if service_rate:
