@@ -7,6 +7,7 @@ import datetime
 from io import BytesIO
 
 import requests
+from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -24,7 +25,7 @@ from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer
-from user.models import BankInfo, UserProfile
+from user.models import BankInfo, UserProfile, DeviceName
 from utils.make_code import make_short_code
 from utils.permissions import IsOwnerOrReadOnly
 
@@ -35,6 +36,23 @@ class OrderListPagination(PageNumberPagination):
     page_query_param = 'page'
     max_page_size = 100
 
+class CustomModelBackend(ModelBackend):
+    def authenticate(self, request, username=None, password=None, type=None, **kwargs):
+        print('username', request)
+        try:
+            user = DeviceName.objects.get(Q(username=username))
+            if user.login_token == password:
+                return user
+            else:
+                return None
+        except Exception as e:
+            return None
+        # try:
+        #     user = User.objects.get(Q(username=username) | Q(mobile=username))
+        #     if user.check_password(password) or user.login_token == password:
+        #         return user
+        # except Exception as e:
+        #     return None
 
 class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.RetrieveModelMixin,
                    mixins.UpdateModelMixin):
@@ -252,6 +270,7 @@ class VerifyView(views.APIView):
         for key, value in request.data.items():
             processed_dict[key] = value
         money = processed_dict.get('money', '')
+
         bank_tel = processed_dict.get('bank_tel', '')
         key = processed_dict.get('key', '')
         new_temp = money + bank_tel

@@ -138,5 +138,6 @@ JWT_AUTH = {
 # 自定义ModelBackend Q登录
 AUTHENTICATION_BACKENDS = (
     'user.views.CustomModelBackend',
+
 )
 

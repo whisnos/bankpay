@@ -29,11 +29,24 @@ class UserProfile(AbstractUser):
         return self.username
 
 
+class DeviceName(models.Model):
+    user = models.ForeignKey(UserProfile, null=True, blank=True, related_name='devices',verbose_name='用户', on_delete=models.CASCADE)
+    username = models.CharField(max_length=25, null=True, blank=True, verbose_name='设备名称')
+    login_token = models.CharField(max_length=8, null=True, blank=True, verbose_name='token')
+    auth_code = models.CharField(max_length=32, null=True, blank=True, verbose_name='用户验证码')
+    add_time = models.DateTimeField(default=datetime.now, verbose_name='创建时间')
+    class Meta:
+        verbose_name = '设备管理'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.username
+
 class BankInfo(models.Model):
     # 用户
     user = models.ForeignKey(UserProfile, null=True, blank=True, related_name='banks',verbose_name='用户', on_delete=models.CASCADE)
     name = models.CharField(max_length=50, verbose_name='收款人')
-    account_num = models.CharField(max_length=35, verbose_name='账号')
+    account_num = models.CharField(max_length=35, unique=True,verbose_name='账号')
     bank_type = models.CharField(max_length=15, verbose_name='银行类型')
     open_bank = models.CharField(max_length=50, null=True, blank=True, verbose_name='开户行')
     mobile = models.CharField(max_length=11, null=True, blank=True, verbose_name='手机号')

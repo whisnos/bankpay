@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, status
 
 # Create your views here.
@@ -12,7 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from user.models import UserProfile
+from user.filters import UserFilter
+from user.models import UserProfile, DeviceName
 from user.serializers import RegisterUserSerializer, UserDetailSerializer
 from django.contrib.auth import get_user_model
 
@@ -22,14 +24,39 @@ from utils.permissions import IsOwnerOrReadOnly
 User = get_user_model()
 
 
+def log_in(func):
+    def wrapper(request, *args, **kwargs):
+        print('request.data', request.POST.get("type"))
+        if not request.POST.get("type"):
+            #
+            return func(request, *args, **kwargs)
+        return func(request, *args, **kwargs)
+
+    return wrapper
+
+
+# @log_in
 class CustomModelBackend(ModelBackend):
-    def authenticate(self, request, username=None, password=None, **kwargs):
+    def authenticate(self, request, username=None, password=None, type=None, **kwargs):
+        user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
-            user = User.objects.get(Q(username=username) | Q(mobile=username))
-            if user.check_password(password) or user.login_token == password:
-                return user
-        except Exception as e:
+            if user.mobile:
+                if user.check_password(password) or user.login_token == password:
+                    return user
+                else:
+                    return None
+            if user.login_token == password:
+                return user.user_id
             return None
+        except Exception as e:
+            try:
+                if user.login_token == password:
+                    userid = user.user_id
+                    user = User.objects.get(id=userid)
+                    return user
+                return None
+            except Exception as e:
+                return None
 
 
 class UserListPagination(PageNumberPagination):
@@ -39,7 +66,8 @@ class UserListPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.RetrieveModelMixin,
+class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.CreateModelMixin,
+                         mixins.RetrieveModelMixin,
                          mixins.UpdateModelMixin):
     '''
         total_money: 总成功收款 ---
@@ -58,18 +86,28 @@ class UserProfileViewset(viewsets.GenericViewSet, mixins.CreateModelMixin, mixin
     # JWT认证
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = UserFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        return UserProfile.objects.filter(proxy_id=user.id).order_by('id')
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return UserDetailSerializer
         elif self.action == "create":
             return RegisterUserSerializer
-
+        elif self.action == "list":
+            return UserDetailSerializer
         return UserDetailSerializer
 
     def get_permissions(self):
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
+            return [IsAuthenticated()]
+        elif self.action == "list":
             return [IsAuthenticated()]
         else:
             return []
