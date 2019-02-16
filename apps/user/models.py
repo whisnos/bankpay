@@ -31,10 +31,11 @@ class UserProfile(AbstractUser):
 
 class DeviceName(models.Model):
     user = models.ForeignKey(UserProfile, null=True, blank=True, related_name='devices',verbose_name='用户', on_delete=models.CASCADE)
-    username = models.CharField(max_length=25, null=True, blank=True, verbose_name='设备名称')
+    username = models.CharField(max_length=25, null=True, blank=True,verbose_name='设备名称')
     login_token = models.CharField(max_length=8, null=True, blank=True, verbose_name='token')
     auth_code = models.CharField(max_length=32, null=True, blank=True, verbose_name='用户验证码')
     add_time = models.DateTimeField(default=datetime.now, verbose_name='创建时间')
+    is_active = models.BooleanField(default=True,verbose_name='是否激活')
     class Meta:
         verbose_name = '设备管理'
         verbose_name_plural = verbose_name
@@ -57,6 +58,7 @@ class BankInfo(models.Model):
     bank_tel = models.CharField(max_length=15,null=True, blank=True,verbose_name='银行电话')
     card_index = models.CharField(max_length=32,null=True,blank=True,verbose_name='卡索引')
     bank_mark = models.CharField(max_length=20,null=True,blank=True,verbose_name='银行编号')
+    devices = models.ForeignKey(DeviceName,null=True,blank=True,related_name='banks',verbose_name='对应设备',on_delete=models.CASCADE)
     def __str__(self):
         return self.name
 

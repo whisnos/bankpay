@@ -40,7 +40,8 @@ class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
-            if user.mobile:
+            if user.level:
+                print(555555)
                 if user.check_password(password) or user.login_token == password:
                     return user
                 else:

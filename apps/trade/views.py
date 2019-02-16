@@ -24,9 +24,9 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
-    WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer
+    WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer
 from user.models import BankInfo, UserProfile, DeviceName
-from utils.make_code import make_short_code
+from utils.make_code import make_short_code, make_login_token, make_auth_code
 from utils.permissions import IsOwnerOrReadOnly
 
 
@@ -35,6 +35,7 @@ class OrderListPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     page_query_param = 'page'
     max_page_size = 100
+
 
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
@@ -53,6 +54,7 @@ class CustomModelBackend(ModelBackend):
         #         return user
         # except Exception as e:
         #     return None
+
 
 class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.RetrieveModelMixin,
                    mixins.UpdateModelMixin):
@@ -156,11 +158,23 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         if not self.request.user.is_proxy:
-            bank = self.perform_create(serializer)
-        response_data = serializer.data
+            name = request.data.get('name', '')
+            bank_tel = request.data.get('bank_tel', '')
+            print('9999999999', name, bank_tel)
+            bank_queryset = BankInfo.objects.filter(bank_tel=bank_tel, name=name)
+            if not bank_queryset:
+                code = 201
+                bank = self.perform_create(serializer)
+                response_data = {'msg': '创建成功'}
+                headers = self.get_success_headers(response_data)
+                return Response(response_data, status=code, headers=headers)
+
+        code = 400
+        response_data = {'msg': '创建失败'}
         headers = self.get_success_headers(response_data)
-        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(response_data, status=code, headers=headers)
 
 
 class GetPayView(views.APIView):
@@ -329,8 +343,10 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 processed_dict[key] = value
             money = processed_dict.get('total_amount', '')
             bank_tel = processed_dict.get('bank_tel', '')
+            auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
-            bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel)
+            device_obj = DeviceName.objects.get(auth_code=auth_code)
+            bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
             if len(bank_queryset) == 1:
                 bank_obj = bank_queryset[0]
 
@@ -398,7 +414,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 headers = {'Content-Type': 'application/json'}
                 try:
                     res = requests.post(notify_url, headers=headers, data=r, timeout=5, stream=True)
-                    if res.text =='success':
+                    if res.text == 'success':
                         return Response(data=resp, status=200)
                     else:
                         order_obj.pay_status = 'NOTICE_FAIL'
@@ -407,7 +423,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 except Exception:
                     order_obj.pay_status = 'NOTICE_FAIL'
                     order_obj.save()
-                    return Response(data='状态异常',status=404)
+                    return Response(data='状态异常', status=404)
 
         code = 403
         resp['msg'] = '无操作权限'
@@ -539,3 +555,54 @@ def pay(request):
             return HttpResponse('链接错误')
     else:
         return HttpResponse('链接错误')
+
+
+class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    serializer_class = DeviceSerializer
+    pagination_class = OrderListPagination
+    '状态,时间范围，金额范围'
+
+    # filter_backends = (DjangoFilterBackend,)
+    # filter_class = OrdersFilter
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return RegisterDeviceSerializer
+        return DeviceSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return DeviceName.objects.all().order_by('id')
+        user = self.request.user
+        if not user.is_proxy:
+            return DeviceName.objects.filter(user=user).order_by('-add_time')
+        return []
+
+    def update(self, request, *args, **kwargs):
+        resp = {'msg': []}
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device_obj = self.get_object()
+        code = 200
+        if not self.request.user.is_proxy:
+            is_active = self.request.data.get('is_active', '')
+            auth_code = self.request.data.get('auth_code', '')
+            login_token = self.request.data.get('login_token', '')
+            print('pay_status', is_active)
+            if is_active:
+                device_obj.pay_status = is_active
+                resp['msg'].append('状态修改成功')
+            if auth_code:
+                device_obj.auth_code = make_auth_code()
+                resp['msg'].append('授权码修改成功')
+            if login_token:
+                device_obj.login_token = make_login_token()
+                resp['msg'].append('登录码修改成功')
+
+            device_obj.save()
+        else:
+            code = 403
+            resp['msg'].append('该用户没有操作权限')
+        return Response(data=resp, status=code)

@@ -5,9 +5,12 @@ import time
 from django.db.models import Sum, Count
 from rest_framework import serializers, status
 from time import strftime, localtime
+
+from rest_framework.validators import UniqueValidator
+
 from trade.models import OrderInfo, WithDrawMoney
-from user.models import BankInfo, UserProfile
-from utils.make_code import generate_order_no
+from user.models import BankInfo, UserProfile, DeviceName
+from utils.make_code import generate_order_no, make_auth_code, make_login_token
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -78,7 +81,6 @@ class GetPaySerializer(serializers.Serializer):
     pay_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
 
-
     # 生成订单号信息
     def generate_order_sn(self):
         import time
@@ -130,7 +132,8 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
     freeze_money = serializers.FloatField(read_only=True)
     money = serializers.FloatField()
     real_money = serializers.FloatField(read_only=True)
-    time_rate =serializers.CharField(read_only=True)
+    time_rate = serializers.CharField(read_only=True)
+
     def validate(self, attrs):
         user = self.context['request'].user
         user_money = user.total_money
@@ -191,4 +194,62 @@ class TotalNumSerializer(serializers.Serializer):
 class VerifyPaySerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderInfo
+        fields = '__all__'
+
+class DeviceSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    auth_code = serializers.CharField(label='识别码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
+    ], help_text='用户识别码')
+    login_token = serializers.CharField(label='登录码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
+    ], help_text='用户登录码')
+
+    class Meta:
+        model = DeviceName
+        fields = '__all__'
+class RegisterDeviceSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    username = serializers.CharField(label='用户名', required=True, min_length=5, max_length=20, allow_blank=False,
+                                     validators=[
+                                         UniqueValidator(queryset=UserProfile.objects.all(), message='用户名不能重复')
+                                     ], help_text='用户名')
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    auth_code = serializers.CharField(label='识别码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
+    ], help_text='用户识别码')
+    login_token = serializers.CharField(label='登录码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
+    ], help_text='用户登录码')
+
+    def validate_username(self,obj):
+        device_queryset=DeviceName.objects.filter(username=obj)
+        if device_queryset:
+            print(8888)
+            raise serializers.ValidationError('用户名已存在')
+        return obj
+
+    def create(self, validated_data):
+        user_up = self.context['request'].user
+        if user_up.is_superuser:
+            device_obj = DeviceName.objects.create(**validated_data)
+            device_obj.auth_code = make_auth_code()
+            device_obj.login_token = make_login_token()
+            device_obj.is_active = False
+
+            device_obj.save()
+            return device_obj
+        if not user_up.is_proxy:
+            device_obj = DeviceName.objects.create(**validated_data)
+            device_obj.auth_code = make_auth_code()
+            device_obj.login_token = make_login_token()
+            device_obj.is_active = False
+
+            device_obj.proxy_id = user_up.id
+            device_obj.save()
+            return device_obj
+        return user_up
+    class Meta:
+        model = DeviceName
         fields = '__all__'
