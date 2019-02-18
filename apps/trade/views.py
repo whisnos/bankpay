@@ -24,7 +24,8 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
-    WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer
+    WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
+    UpdateDeviceSerializer
 from user.models import BankInfo, UserProfile, DeviceName
 from utils.make_code import make_short_code, make_login_token, make_auth_code
 from utils.permissions import IsOwnerOrReadOnly
@@ -561,7 +562,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = DeviceSerializer
-    pagination_class = OrderListPagination
+    # pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
     # filter_backends = (DjangoFilterBackend,)
@@ -570,6 +571,8 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     def get_serializer_class(self):
         if self.action == "create":
             return RegisterDeviceSerializer
+        elif self.action == "update":
+            return UpdateDeviceSerializer
         return DeviceSerializer
 
     def get_queryset(self):
@@ -584,24 +587,35 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         resp = {'msg': []}
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        device_obj = self.get_object()
+        # obj = self.get_object()
         code = 200
         if not self.request.user.is_proxy:
             is_active = self.request.data.get('is_active', '')
             auth_code = self.request.data.get('auth_code', '')
             login_token = self.request.data.get('login_token', '')
-            print('pay_status', is_active)
-            if is_active:
-                device_obj.pay_status = is_active
-                resp['msg'].append('状态修改成功')
-            if auth_code:
-                device_obj.auth_code = make_auth_code()
-                resp['msg'].append('授权码修改成功')
-            if login_token:
-                device_obj.login_token = make_login_token()
-                resp['msg'].append('登录码修改成功')
+            get_deviceid = self.request.data.get('id', '')
+            # tuoxie 修改 tuoxie001
+            if not self.request.user.is_proxy:
+                id_list = [device_obj.id for device_obj in DeviceName.objects.filter(user_id=self.request.user.id)]
+                if get_deviceid:
+                    if int(get_deviceid) in id_list:
+                        device_obj=DeviceName.objects.get(id=get_deviceid)
+                        if is_active:
+                            if is_active == 'true':
+                                is_active = True
+                            if is_active == 'false':
+                                is_active = False
+                            device_obj.is_active = is_active
+                            resp['msg'].append('状态修改成功')
+                        if auth_code:
+                            device_obj.auth_code = make_auth_code()
+                            resp['msg'].append('授权码修改成功')
+                        if login_token:
+                            device_obj.login_token = make_login_token()
+                            resp['msg'].append('登录码修改成功')
 
-            device_obj.save()
+                        device_obj.save()
+
         else:
             code = 403
             resp['msg'].append('该用户没有操作权限')

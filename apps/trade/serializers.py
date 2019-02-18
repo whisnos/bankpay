@@ -223,6 +223,8 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
 
+
+
     def validate_username(self,obj):
         device_queryset=DeviceName.objects.filter(username=obj)
         if device_queryset:
@@ -250,6 +252,36 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
             device_obj.save()
             return device_obj
         return user_up
+    class Meta:
+        model = DeviceName
+        fields = '__all__'
+
+class UpdateDeviceSerializer(serializers.ModelSerializer):
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    auth_code = serializers.CharField(label='识别码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
+    ], help_text='用户识别码')
+    login_token = serializers.CharField(label='登录码', read_only=True, validators=[
+        UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
+    ], help_text='用户登录码')
+    username = serializers.CharField(label='设备名', required=False, min_length=5, max_length=20, allow_blank=False,
+                                     validators=[
+                                         UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
+                                     ], help_text='设备名')
+    is_active = serializers.CharField(label='是否激活',required=False)
+
+    def validate_is_active(self, obj):
+        print(type(obj))
+        if str(obj) not in ['True','true','False','false','0','1']:
+            raise serializers.ValidationError('传值错误')
+        return obj
+    def validate_username(self, obj):
+        device_queryset = DeviceName.objects.filter(username=obj)
+        if device_queryset:
+            print(8888)
+            raise serializers.ValidationError('用户名已存在')
+        return obj
+
     class Meta:
         model = DeviceName
         fields = '__all__'

@@ -167,7 +167,10 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.auth_code = make_auth_code()
                         resp['msg'].append(user.auth_code)
                     if is_active:
-                        print(111)
+                        if is_active == 'true':
+                            is_active = True
+                        if is_active == 'false':
+                            is_active = False
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
                     if service_rate:
