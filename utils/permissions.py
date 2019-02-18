@@ -17,7 +17,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
         # Instance must have an attribute named `owner`.
         # 判断是否是同一个用户
-        return obj.user == request.user
+        return obj.user == request.user or request.user.is_superuser
 
 
 # login 增加字段
@@ -25,6 +25,7 @@ def jwt_response_payload_handler(token, user=None, request=None):
     """为返回的结果添加用户相关信息"""
     if not user.level:
         user.level=None
+
     return {
         'token': token,
         'username': user.username,

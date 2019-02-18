@@ -52,6 +52,32 @@ class BankinfoSerializer(serializers.ModelSerializer):
                   'mobile', 'is_active', 'bank_tel', 'card_index', 'bank_mark']
 
 
+class UpdateBankinfoSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    total_money = serializers.CharField(read_only=True)
+    account_num = serializers.CharField(label='银行卡号', required=False)
+    bank_type = serializers.CharField(label='银行类型', required=False)
+    is_active = serializers.CharField(label='是否激活', required=False)
+    name = serializers.CharField(label='是否激活', required=False)
+
+    def validate_is_active(self, obj):
+        if str(obj) not in ['0', '1']:
+            raise serializers.ValidationError('传值错误')
+        return obj
+
+    def validate_account_num(self, data):
+        bank_queryset = BankInfo.objects.filter(account_num=data)
+        if bank_queryset:
+            raise serializers.ValidationError("银行卡已存在")
+        return data
+
+    class Meta:
+        model = BankInfo
+        fields = '__all__'
+
+
 class OrderListSerializer(serializers.ModelSerializer):
     pay_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
@@ -114,10 +140,10 @@ class WithDrawSerializer(serializers.ModelSerializer):
     withdraw_no = serializers.CharField(read_only=True)
     time_rate = serializers.FloatField(read_only=True)
     real_money = serializers.FloatField(read_only=True)
-
+    open_bank = serializers.CharField(read_only=True)
     class Meta:
         model = WithDrawMoney
-        fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'user_msg',
+        fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'open_bank','user_msg',
                   'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money']
 
         # fields = '__all__'
@@ -196,6 +222,7 @@ class VerifyPaySerializer(serializers.ModelSerializer):
         model = OrderInfo
         fields = '__all__'
 
+
 class DeviceSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
@@ -209,6 +236,8 @@ class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceName
         fields = '__all__'
+
+
 class RegisterDeviceSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     username = serializers.CharField(label='用户名', required=True, min_length=5, max_length=20, allow_blank=False,
@@ -223,10 +252,8 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
 
-
-
-    def validate_username(self,obj):
-        device_queryset=DeviceName.objects.filter(username=obj)
+    def validate_username(self, obj):
+        device_queryset = DeviceName.objects.filter(username=obj)
         if device_queryset:
             print(8888)
             raise serializers.ValidationError('用户名已存在')
@@ -252,34 +279,45 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
             device_obj.save()
             return device_obj
         return user_up
+
     class Meta:
         model = DeviceName
         fields = '__all__'
 
+
 class UpdateDeviceSerializer(serializers.ModelSerializer):
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
-    auth_code = serializers.CharField(label='识别码', read_only=True, validators=[
+    auth_code = serializers.CharField(label='识别码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
     ], help_text='用户识别码')
-    login_token = serializers.CharField(label='登录码', read_only=True, validators=[
+    login_token = serializers.CharField(label='登录码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
     username = serializers.CharField(label='设备名', required=False, min_length=5, max_length=20, allow_blank=False,
                                      validators=[
                                          UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
                                      ], help_text='设备名')
-    is_active = serializers.CharField(label='是否激活',required=False)
+    is_active = serializers.CharField(label='是否激活', required=False)
 
     def validate_is_active(self, obj):
-        print(type(obj))
-        if str(obj) not in ['True','true','False','false','0','1']:
+        if str(obj) not in ['0', '1']:
             raise serializers.ValidationError('传值错误')
         return obj
+
     def validate_username(self, obj):
         device_queryset = DeviceName.objects.filter(username=obj)
         if device_queryset:
-            print(8888)
             raise serializers.ValidationError('用户名已存在')
+        return obj
+
+    def validate_auth_code(self, obj):
+        if obj:
+            obj = make_auth_code()
+        return obj
+
+    def validate_login_token(self, obj):
+        if obj:
+            obj = make_login_token()
         return obj
 
     class Meta:

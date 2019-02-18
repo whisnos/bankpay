@@ -31,7 +31,7 @@ class UserProfile(AbstractUser):
 
 class DeviceName(models.Model):
     user = models.ForeignKey(UserProfile, null=True, blank=True, related_name='devices',verbose_name='用户', on_delete=models.CASCADE)
-    username = models.CharField(max_length=25, null=True, blank=True,verbose_name='设备名称')
+    username = models.CharField(max_length=25, null=True, blank=True,unique=True,verbose_name='设备名称')
     login_token = models.CharField(max_length=8, null=True, blank=True, verbose_name='token')
     auth_code = models.CharField(max_length=32, null=True, blank=True, verbose_name='用户验证码')
     add_time = models.DateTimeField(default=datetime.now, verbose_name='创建时间')

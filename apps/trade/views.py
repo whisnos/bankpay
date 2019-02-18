@@ -25,7 +25,7 @@ from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
-    UpdateDeviceSerializer
+    UpdateDeviceSerializer, UpdateBankinfoSerializer
 from user.models import BankInfo, UserProfile, DeviceName
 from utils.make_code import make_short_code, make_login_token, make_auth_code
 from utils.permissions import IsOwnerOrReadOnly
@@ -130,7 +130,7 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         return Response(data=resp, status=code)
 
 
-class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin):
+class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,mixins.DestroyModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = BankinfoSerializer
@@ -144,6 +144,8 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
         # if not self.request.user.is_proxy:
         if self.action == "create":
             return BankinfoSerializer
+        elif self.action == "update":
+            return UpdateBankinfoSerializer
         return BankinfoSerializer
 
     # return []
@@ -177,6 +179,60 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
         headers = self.get_success_headers(response_data)
         return Response(response_data, status=code, headers=headers)
 
+    # def update(self, request, *args, **kwargs):
+    #     resp = {'msg': []}
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     code = 200
+    #     if not self.request.user.is_proxy:
+    #         get_deviceid = self.request.data.get('id', '')
+    #         name = self.request.data.get('name', '')
+    #         is_active = self.request.data.get('is_active', '')
+    #         account_num = self.request.data.get('account_num', '')
+    #         bank_type = self.request.data.get('bank_type', '')
+    #         open_bank = self.request.data.get('open_bank', '')
+    #         mobile = self.request.data.get('mobile', '')
+    #         # tuoxie 修改 银行卡
+    #         if not self.request.user.is_proxy:
+    #             if get_deviceid:
+    #                 id_list = [bankinfo_obj.id for bankinfo_obj in BankInfo.objects.filter(user_id=self.request.user.id)]
+    #                 if int(get_deviceid) in id_list:
+    #                     bankinfo_obj=BankInfo.objects.get(id=get_deviceid)
+    #                     if is_active:
+    #                         if is_active == 'true':
+    #                             is_active = True
+    #                         if is_active == 'false':
+    #                             is_active = False
+    #                         bankinfo_obj.is_active = is_active
+    #                         resp['msg'].append('状态修改成功')
+    #                     if name:
+    #                         bankinfo_obj.name = name
+    #                         resp['msg'].append('姓名修改成功')
+    #                     if account_num:
+    #                         bankinfo_obj.account_num = account_num
+    #                         resp['msg'].append('账号修改成功')
+    #                     if bank_type:
+    #                         bankinfo_obj.bank_type = bank_type
+    #                         resp['msg'].append('银行类型修改成功')
+    #                     if open_bank:
+    #                         bankinfo_obj.open_bank = open_bank
+    #                         resp['msg'].append('开户行修改成功')
+    #                     if mobile:
+    #                         bankinfo_obj.mobile = mobile
+    #                         resp['msg'].append('手机修改成功')
+    #                     bankinfo_obj.save()
+    #                     self.perform_update(serializer)
+    #                 else:
+    #                     code = 400
+    #                     resp['msg'].append('操作有误')
+    #             else:
+    #                 code = 400
+    #                 resp['msg'].append('操作对象不存在')
+    #
+    #     else:
+    #         code = 403
+    #         resp['msg'].append('该用户没有操作权限')
+    #     return Response(data=resp, status=code)
 
 class GetPayView(views.APIView):
     def post(self, request):
@@ -344,7 +400,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 processed_dict[key] = value
             money = processed_dict.get('total_amount', '')
             bank_tel = processed_dict.get('bank_tel', '')
-            auth_code = processed_dict.get('auth_code', '')
+            auth_code = processed_dict.get('username', '')
             key = processed_dict.get('key', '')
             device_obj = DeviceName.objects.get(auth_code=auth_code)
             bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
@@ -375,8 +431,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 resp['msg'] = '存在多笔订单，需手动处理'
                 code = 400
                 return Response(data=resp, status=code)
-
-            new_temp = str(money) + str(bank_tel) + str(order_obj.order_no)
+            # 加密顺序 money + bank_tel + order_no + auth_code
+            new_temp = str(money) + str(bank_tel) + str(order_obj.order_no) +str(auth_code)
             m = hashlib.md5()
             m.update(new_temp.encode('utf-8'))
             my_key = m.hexdigest()
@@ -558,7 +614,7 @@ def pay(request):
         return HttpResponse('链接错误')
 
 
-class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin):
+class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,mixins.DestroyModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = DeviceSerializer
@@ -583,40 +639,46 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             return DeviceName.objects.filter(user=user).order_by('-add_time')
         return []
 
-    def update(self, request, *args, **kwargs):
-        resp = {'msg': []}
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        # obj = self.get_object()
-        code = 200
-        if not self.request.user.is_proxy:
-            is_active = self.request.data.get('is_active', '')
-            auth_code = self.request.data.get('auth_code', '')
-            login_token = self.request.data.get('login_token', '')
-            get_deviceid = self.request.data.get('id', '')
-            # tuoxie 修改 tuoxie001
-            if not self.request.user.is_proxy:
-                id_list = [device_obj.id for device_obj in DeviceName.objects.filter(user_id=self.request.user.id)]
-                if get_deviceid:
-                    if int(get_deviceid) in id_list:
-                        device_obj=DeviceName.objects.get(id=get_deviceid)
-                        if is_active:
-                            if is_active == 'true':
-                                is_active = True
-                            if is_active == 'false':
-                                is_active = False
-                            device_obj.is_active = is_active
-                            resp['msg'].append('状态修改成功')
-                        if auth_code:
-                            device_obj.auth_code = make_auth_code()
-                            resp['msg'].append('授权码修改成功')
-                        if login_token:
-                            device_obj.login_token = make_login_token()
-                            resp['msg'].append('登录码修改成功')
-
-                        device_obj.save()
-
-        else:
-            code = 403
-            resp['msg'].append('该用户没有操作权限')
-        return Response(data=resp, status=code)
+    # def update(self, request, *args, **kwargs):
+    #     resp = {'msg': []}
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     # obj = self.get_object()
+    #     code = 200
+    #     if not self.request.user.is_proxy:
+    #         is_active = self.request.data.get('is_active', '')
+    #         auth_code = self.request.data.get('auth_code', '')
+    #         login_token = self.request.data.get('login_token', '')
+    #         username = self.request.data.get('username', '')
+    #         get_deviceid = self.request.data.get('id', '')
+    #         # tuoxie 修改 tuoxie001
+    #         if not self.request.user.is_proxy:
+    #             id_list = [device_obj.id for device_obj in DeviceName.objects.filter(user_id=self.request.user.id)]
+    #             if get_deviceid:
+    #                 if int(get_deviceid) in id_list:
+    #                     device_obj=DeviceName.objects.get(id=get_deviceid)
+    #                     if is_active:
+    #                         if is_active == 'true':
+    #                             is_active = True
+    #                         if is_active == 'false':
+    #                             is_active = False
+    #                         device_obj.is_active = is_active
+    #                         resp['msg'].append('状态修改成功')
+    #                     if auth_code:
+    #                         device_obj.auth_code = make_auth_code()
+    #                         resp['msg'].append('授权码修改成功')
+    #                     if login_token:
+    #                         device_obj.login_token = make_login_token()
+    #                         resp['msg'].append('登录码修改成功')
+    #                     if username:
+    #                         device_obj.username = username
+    #                         resp['msg'].append('用户名修改成功')
+    #                     device_obj.save()
+    #                 else:
+    #                     code = 400
+    #                     resp['msg'].append('操作有误')
+    #
+    #     else:
+    #         code = 403
+    #         resp['msg'].append('该用户没有操作权限')
+    #     return Response(data=resp, status=code)

@@ -42,13 +42,10 @@ class CustomModelBackend(ModelBackend):
         try:
             if user.level:
                 print(555555)
-                if user.check_password(password) or user.login_token == password:
+                if user.check_password(password):
                     return user
                 else:
                     return None
-            if user.login_token == password:
-                return user.user_id
-            return None
         except Exception as e:
             try:
                 if user.login_token == password:
