@@ -50,7 +50,6 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_up = self.context['request'].user
         if user_up.is_superuser:
-
             del validated_data['password2']
             user = UserProfile.objects.create(**validated_data)
             user.set_password(validated_data['password'])

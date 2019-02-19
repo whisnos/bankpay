@@ -1,8 +1,11 @@
+import json
 from decimal import Decimal
 
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, status
 
@@ -127,8 +130,8 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
-        print('is_active',is_active)
-        print('get_proxyid',get_proxyid)
+        print('is_active', is_active)
+        print('get_proxyid', get_proxyid)
         service_rate = self.request.data.get('service_rate', '')
 
         # tuoxie 修改 tuoxie001
@@ -164,10 +167,10 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.auth_code = make_auth_code()
                         resp['msg'].append(user.auth_code)
                     if is_active:
-                        if is_active == 'true':
-                            is_active = True
-                        if is_active == 'false':
-                            is_active = False
+                        # if is_active == 'true':
+                        #     is_active = True
+                        # if is_active == 'false':
+                        #     is_active = False
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
                     if service_rate:
@@ -243,3 +246,36 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
             user.save()
         return Response(data=resp, status=code)
+
+
+@csrf_exempt
+def device_login(request):
+    resp = {'msg': '操作成功'}
+    if request.method == 'POST':
+        result = request.body
+        try:
+            dict_result = json.loads(result)
+        except Exception:
+            code = 400
+            resp['msg'] = '请求方式错误,请用json格式传参'
+            return JsonResponse(resp, status=code)
+        username = dict_result.get('username')
+        login_token = dict_result.get('login_token')
+        device_queryset = DeviceName.objects.filter(username=username)
+        if not device_queryset:
+            code = 400
+            resp['msg'] = '登录失败'
+            return JsonResponse(resp, status=code)
+        device_obj = device_queryset[0]
+        if device_obj.login_token != login_token:
+            code = 400
+            resp['msg'] = '登录失败'
+            return JsonResponse(resp, status=code)
+        auth_code = device_obj.auth_code
+        code = 200
+        resp['auth_code'] = auth_code
+        return JsonResponse(resp, status=code)
+    else:
+        code = 400
+        resp['msg'] = '仅支持POST'
+        return JsonResponse(resp, status=code)

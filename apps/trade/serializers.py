@@ -20,7 +20,8 @@ class OrderSerializer(serializers.ModelSerializer):
     pay_status = serializers.CharField(read_only=True)
     pay_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
-
+    account_num = serializers.CharField(read_only=True,)
+    pay_url = serializers.CharField(read_only=True,)
     class Meta:
         model = OrderInfo
         fields = '__all__'
@@ -141,9 +142,11 @@ class WithDrawSerializer(serializers.ModelSerializer):
     time_rate = serializers.FloatField(read_only=True)
     real_money = serializers.FloatField(read_only=True)
     open_bank = serializers.CharField(read_only=True)
+
     class Meta:
         model = WithDrawMoney
-        fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'open_bank','user_msg',
+        fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'open_bank',
+                  'user_msg',
                   'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money']
 
         # fields = '__all__'
@@ -265,7 +268,7 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
             device_obj = DeviceName.objects.create(**validated_data)
             device_obj.auth_code = make_auth_code()
             device_obj.login_token = make_login_token()
-            device_obj.is_active = False
+            device_obj.is_active = validated_data.get('is_active')
 
             device_obj.save()
             return device_obj
@@ -273,7 +276,7 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
             device_obj = DeviceName.objects.create(**validated_data)
             device_obj.auth_code = make_auth_code()
             device_obj.login_token = make_login_token()
-            device_obj.is_active = False
+            device_obj.is_active = validated_data.get('is_active')
 
             device_obj.proxy_id = user_up.id
             device_obj.save()
@@ -293,10 +296,11 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     login_token = serializers.CharField(label='登录码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
-    username = serializers.CharField(label='设备名', required=False, min_length=5, max_length=20, allow_blank=False,
-                                     validators=[
-                                         UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
-                                     ], help_text='设备名')
+    # username = serializers.CharField(label='设备名', required=False, min_length=5, max_length=20, allow_blank=False,
+    #                                  validators=[
+    #                                      UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
+    #                                  ], help_text='设备名')
+    username = serializers.CharField(label='设备名',read_only=True)
     is_active = serializers.CharField(label='是否激活', required=False)
 
     def validate_is_active(self, obj):
@@ -304,21 +308,21 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('传值错误')
         return obj
 
-    def validate_username(self, obj):
-        device_queryset = DeviceName.objects.filter(username=obj)
-        if device_queryset:
-            raise serializers.ValidationError('用户名已存在')
-        return obj
+    # def validate_username(self, obj):
+    #     device_queryset = DeviceName.objects.filter(username=obj)
+    #     if device_queryset:
+    #         raise serializers.ValidationError('用户名已存在')
+    #     return obj
 
-    def validate_auth_code(self, obj):
-        if obj:
-            obj = make_auth_code()
-        return obj
-
-    def validate_login_token(self, obj):
-        if obj:
-            obj = make_login_token()
-        return obj
+    # def validate_auth_code(self, obj):
+    #     if obj:
+    #         obj = make_auth_code()
+    #     return obj
+    #
+    # def validate_login_token(self, obj):
+    #     if obj:
+    #         obj = make_login_token()
+    #     return obj
 
     class Meta:
         model = DeviceName

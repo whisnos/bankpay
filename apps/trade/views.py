@@ -130,7 +130,8 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         return Response(data=resp, status=code)
 
 
-class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,mixins.DestroyModelMixin):
+class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,
+                  mixins.DestroyModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = BankinfoSerializer
@@ -233,6 +234,7 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     #         code = 403
     #         resp['msg'].append('该用户没有操作权限')
     #     return Response(data=resp, status=code)
+
 
 class GetPayView(views.APIView):
     def post(self, request):
@@ -400,18 +402,17 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 processed_dict[key] = value
             money = processed_dict.get('total_amount', '')
             bank_tel = processed_dict.get('bank_tel', '')
-            auth_code = processed_dict.get('username', '')
+            auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
+            print('money',money)
             device_obj = DeviceName.objects.get(auth_code=auth_code)
             bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
-            if len(bank_queryset) == 1:
-                bank_obj = bank_queryset[0]
-
-            elif not bank_queryset:
+            if not bank_queryset:
                 code = 400
                 resp['msg'] = '银行卡不存在，联系管理员处理'
                 return Response(data=resp, status=code)
-
+            elif len(bank_queryset) == 1:
+                bank_obj = bank_queryset[0]
             else:
                 resp['msg'] = '存在多张银行卡，需手动处理'
                 code = 400
@@ -419,28 +420,26 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
 
             order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money,
                                                       account_num=bank_obj.account_num)
-            if len(order_queryset) == 1:
-                print('111111111111')
-                order_obj = order_queryset[0]
-            elif not order_queryset:
+            if not order_queryset:
                 code = 400
                 resp['msg'] = '订单不存在，联系管理员处理'
                 return Response(data=resp, status=code)
-
+            elif len(order_queryset) == 1:
+                order_obj = order_queryset[0]
             else:
                 resp['msg'] = '存在多笔订单，需手动处理'
                 code = 400
                 return Response(data=resp, status=code)
-            # 加密顺序 money + bank_tel + order_no + auth_code
-            new_temp = str(money) + str(bank_tel) + str(order_obj.order_no) +str(auth_code)
+            # 加密顺序 money + bank_tel + auth_code
+            new_temp = str(money) + str(bank_tel) + str(auth_code)
             m = hashlib.md5()
             m.update(new_temp.encode('utf-8'))
             my_key = m.hexdigest()
+            print('my_key',my_key,key)
             if key == my_key:
-                print(22222222222)
-                order_obj = order_queryset[0]
                 order_obj.pay_status = 'TRADE_SUCCESS'
                 order_obj.pay_time = datetime.datetime.now()
+                print('订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
                 order_obj.save()
                 user_id = order_obj.user_id
                 user_obj = UserProfile.objects.filter(id=user_id)[0]
@@ -485,11 +484,6 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
         code = 403
         resp['msg'] = '无操作权限'
         return Response(data=resp, status=code)
-
-
-class AddMoney(views.APIView):
-    def post(self, request):
-        pass
 
 
 class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
@@ -614,11 +608,12 @@ def pay(request):
         return HttpResponse('链接错误')
 
 
-class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,mixins.DestroyModelMixin):
+class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,
+                     mixins.DestroyModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = DeviceSerializer
-    # pagination_class = OrderListPagination
+    pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
     # filter_backends = (DjangoFilterBackend,)
