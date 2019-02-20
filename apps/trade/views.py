@@ -101,7 +101,6 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         serializer.is_valid(raise_exception=True)
         if user_up.is_proxy:
             order = self.perform_create(serializer)
-            print(111111)
             response_data = serializer.data
             headers = self.get_success_headers(response_data)
             code = 201
@@ -166,8 +165,10 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
         if not self.request.user.is_proxy:
             name = request.data.get('name', '')
             bank_tel = request.data.get('bank_tel', '')
-            print('9999999999', name, bank_tel)
-            bank_queryset = BankInfo.objects.filter(bank_tel=bank_tel, name=name)
+            mobile = request.data.get('mobile', '')
+            print('9999999999', name, bank_tel, mobile)
+            # 创建银行卡 根据 姓名 手机号 银行卡官方电话 若能找出 则不可创建
+            bank_queryset = BankInfo.objects.filter(bank_tel=bank_tel, name=name, mobile=mobile)
             if not bank_queryset:
                 code = 201
                 bank = self.perform_create(serializer)
@@ -180,6 +181,13 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
         headers = self.get_success_headers(response_data)
         return Response(response_data, status=code, headers=headers)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        response_data = {'msg': '删除成功', 'id': instance.id}
+        self.perform_destroy(instance)
+        code = 204
+        headers = self.get_success_headers(response_data)
+        return Response(response_data, status=code, headers=headers)
     # def update(self, request, *args, **kwargs):
     #     resp = {'msg': []}
     #     serializer = self.get_serializer(data=request.data)
@@ -278,11 +286,11 @@ class GetPayView(views.APIView):
             bank_queryet = BankInfo.objects.filter(is_active=True, user_id=user.proxy_id).all()
             if not bank_queryet:
                 resp['code'] = 404
-                resp['msg'] = '收款商户未激活'
+                resp['msg'] = '收款商户未激活,或不存在有效收款卡'
                 return Response(resp)
 
             # 关闭超时订单
-            now_time = datetime.datetime.now() - datetime.timedelta(minutes=10)
+            now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
             order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
                 pay_status='TRADE_CLOSE')
 
@@ -396,7 +404,9 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     def update(self, request, *args, **kwargs):
         user = self.request.user
         resp = {'msg': '操作成功'}
+        print('user',user)
         if not user.is_proxy:
+            print(3333333333)
             processed_dict = {}
             for key, value in self.request.data.items():
                 processed_dict[key] = value
@@ -404,7 +414,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             bank_tel = processed_dict.get('bank_tel', '')
             auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
-            print('money',money)
+            print('money', money)
             device_obj = DeviceName.objects.get(auth_code=auth_code)
             bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
             if not bank_queryset:
@@ -435,7 +445,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             m = hashlib.md5()
             m.update(new_temp.encode('utf-8'))
             my_key = m.hexdigest()
-            print('my_key',my_key,key)
+            print('my_key', my_key, key)
             if key == my_key:
                 order_obj.pay_status = 'TRADE_SUCCESS'
                 order_obj.pay_time = datetime.datetime.now()
@@ -480,6 +490,10 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     order_obj.pay_status = 'NOTICE_FAIL'
                     order_obj.save()
                     return Response(data='状态异常', status=404)
+            else:
+                resp['msg'] = '加密错误'
+                code = 400
+                return Response(data=resp, status=code)
 
         code = 403
         resp['msg'] = '无操作权限'
@@ -595,7 +609,7 @@ def pay(request):
                 img.save(output_buffer, format='JPEG')
                 binary_data = output_buffer.getvalue()
                 base64_data = base64.b64encode(binary_data)
-                print('pay_url', base64_data)
+                # print('pay_url', base64_data)
                 a = (b'data:image/png;base64,' + (base64_data)).decode('utf-8')
                 return render(request, 'pay.html', {
                     "pay_url": a

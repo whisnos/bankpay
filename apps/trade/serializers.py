@@ -20,8 +20,9 @@ class OrderSerializer(serializers.ModelSerializer):
     pay_status = serializers.CharField(read_only=True)
     pay_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
-    account_num = serializers.CharField(read_only=True,)
-    pay_url = serializers.CharField(read_only=True,)
+    account_num = serializers.CharField(read_only=True, )
+    pay_url = serializers.CharField(read_only=True, )
+
     class Meta:
         model = OrderInfo
         fields = '__all__'
@@ -34,11 +35,34 @@ class OrderUpdateSeralizer(serializers.ModelSerializer):
 
 
 class BankinfoSerializer(serializers.ModelSerializer):
+    QUESTION_TYPES = (
+        (10, 'Blurb'),
+        (20, 'Group Header'),
+    )
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     total_money = serializers.CharField(read_only=True)
     account_num = serializers.CharField(label='银行卡号')
+    mobile = serializers.CharField(label='手机号')
+
+    def validate_mobile(self, data):
+        if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
+            raise serializers.ValidationError('手机号格式错误')
+        return data
+
+    # devices = serializers.ChoiceField(label='所属设备',choices='QUESTION_TYPES')
+    devices = serializers.CharField(label='所属设备')
+
+    def validate_devices(self, obj):
+        if not re.match(r'^(\+|-)?[1-9][0-9]*$', obj):
+            raise serializers.ValidationError('格式错误')
+        device_queryset = DeviceName.objects.filter(id=obj)
+        if not device_queryset:
+            raise serializers.ValidationError('对应设备不存在')
+        obj = device_queryset[0]
+
+        return obj
 
     def validate_account_num(self, data):
         bank_queryset = BankInfo.objects.filter(account_num=data)
@@ -50,7 +74,7 @@ class BankinfoSerializer(serializers.ModelSerializer):
         model = BankInfo
         # fields = '__all__'
         fields = ['user', "id", "last_time", 'add_time', 'total_money', 'name', 'account_num', 'bank_type', 'open_bank',
-                  'mobile', 'is_active', 'bank_tel', 'card_index', 'bank_mark']
+                  'mobile', 'is_active', 'bank_tel', 'card_index', 'bank_mark', 'devices']
 
 
 class UpdateBankinfoSerializer(serializers.ModelSerializer):
@@ -61,7 +85,20 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     account_num = serializers.CharField(label='银行卡号', required=False)
     bank_type = serializers.CharField(label='银行类型', required=False)
     is_active = serializers.CharField(label='是否激活', required=False)
-    name = serializers.CharField(label='是否激活', required=False)
+    name = serializers.CharField(label='姓名', required=False)
+    mobile = serializers.CharField(label='手机', required=False)
+
+    def validate_mobile(self, data):
+        if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
+            raise serializers.ValidationError('手机号格式错误')
+        return data
+
+    def validate_name(self, data):
+        user = self.context['request'].user
+        bank_queryset = BankInfo.objects.filter(name=data, user_id=user.id)
+        if bank_queryset:
+            raise serializers.ValidationError("银行卡已存在")
+        return data
 
     def validate_is_active(self, obj):
         if str(obj) not in ['0', '1']:
@@ -300,7 +337,7 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     #                                  validators=[
     #                                      UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
     #                                  ], help_text='设备名')
-    username = serializers.CharField(label='设备名',read_only=True)
+    username = serializers.CharField(label='设备名', read_only=True)
     is_active = serializers.CharField(label='是否激活', required=False)
 
     def validate_is_active(self, obj):

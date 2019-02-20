@@ -41,7 +41,7 @@ class DeviceName(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.username
+        return str(self.id)
 
 class BankInfo(models.Model):
     # 用户
