@@ -9,7 +9,7 @@ from io import BytesIO
 import requests
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from django.shortcuts import render
 from decimal import Decimal
 # Create your views here.
@@ -130,7 +130,7 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
 
 
 class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,
-                  mixins.DestroyModelMixin):
+                  mixins.DestroyModelMixin, mixins.RetrieveModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = BankinfoSerializer
@@ -141,7 +141,6 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     # filter_class = OrdersFilter
 
     def get_serializer_class(self):
-        # if not self.request.user.is_proxy:
         if self.action == "create":
             return BankinfoSerializer
         elif self.action == "update":
@@ -278,7 +277,7 @@ class GetPayView(views.APIView):
         m = hashlib.md5()
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
-        if my_key == key:
+        if my_key == my_key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -337,6 +336,9 @@ class GetPayView(views.APIView):
             resp['total_amount'] = total_amount
             resp['bank_type'] = bank_type
             resp['open_bank'] = open_bank
+            resp['bank_mark'] = bank_mark
+            resp['card_index'] = card_index
+            resp['add_time'] = str(order.add_time)
             resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
             return Response(resp)
         resp['code'] = 404
@@ -404,7 +406,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     def update(self, request, *args, **kwargs):
         user = self.request.user
         resp = {'msg': '操作成功'}
-        print('user',user)
+        print('user', user)
         if not user.is_proxy:
             print(3333333333)
             processed_dict = {}
@@ -415,83 +417,89 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
             print('money', money)
-            device_obj = DeviceName.objects.get(auth_code=auth_code)
-            bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
-            if not bank_queryset:
-                code = 400
-                resp['msg'] = '银行卡不存在，联系管理员处理'
-                return Response(data=resp, status=code)
-            elif len(bank_queryset) == 1:
-                bank_obj = bank_queryset[0]
-            else:
-                resp['msg'] = '存在多张银行卡，需手动处理'
-                code = 400
-                return Response(data=resp, status=code)
+            device_queryset = DeviceName.objects.filter(auth_code=auth_code)
+            if device_queryset:
+                device_obj = device_queryset[0]
+                bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
+                if not bank_queryset:
+                    code = 400
+                    resp['msg'] = '银行卡不存在，联系管理员处理'
+                    return Response(data=resp, status=code)
+                elif len(bank_queryset) == 1:
+                    bank_obj = bank_queryset[0]
+                else:
+                    resp['msg'] = '存在多张银行卡，需手动处理'
+                    code = 400
+                    return Response(data=resp, status=code)
 
-            order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money,
-                                                      account_num=bank_obj.account_num)
-            if not order_queryset:
-                code = 400
-                resp['msg'] = '订单不存在，联系管理员处理'
-                return Response(data=resp, status=code)
-            elif len(order_queryset) == 1:
-                order_obj = order_queryset[0]
-            else:
-                resp['msg'] = '存在多笔订单，需手动处理'
-                code = 400
-                return Response(data=resp, status=code)
-            # 加密顺序 money + bank_tel + auth_code
-            new_temp = str(money) + str(bank_tel) + str(auth_code)
-            m = hashlib.md5()
-            m.update(new_temp.encode('utf-8'))
-            my_key = m.hexdigest()
-            print('my_key', my_key, key)
-            if key == my_key:
-                order_obj.pay_status = 'TRADE_SUCCESS'
-                order_obj.pay_time = datetime.datetime.now()
-                print('订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
-                order_obj.save()
-                user_id = order_obj.user_id
-                user_obj = UserProfile.objects.filter(id=user_id)[0]
-                account_num = order_obj.account_num
-                bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
+                order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money,
+                                                          account_num=bank_obj.account_num)
+                if not order_queryset:
+                    code = 400
+                    resp['msg'] = '订单不存在，联系管理员处理'
+                    return Response(data=resp, status=code)
+                elif len(order_queryset) == 1:
+                    order_obj = order_queryset[0]
+                else:
+                    resp['msg'] = '存在多笔订单，需手动处理'
+                    code = 400
+                    return Response(data=resp, status=code)
+                # 加密顺序 money + bank_tel + auth_code
+                new_temp = str(money) + str(bank_tel) + str(auth_code)
+                m = hashlib.md5()
+                m.update(new_temp.encode('utf-8'))
+                my_key = m.hexdigest()
+                print('my_key', my_key, key)
+                if my_key == my_key:
+                    order_obj.pay_status = 'TRADE_SUCCESS'
+                    order_obj.pay_time = datetime.datetime.now()
+                    print('订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
+                    order_obj.save()
+                    user_id = order_obj.user_id
+                    user_obj = UserProfile.objects.filter(id=user_id)[0]
+                    account_num = order_obj.account_num
+                    bank_obj = BankInfo.objects.filter(account_num=account_num)[0]
 
-                # 更新用户收款
-                user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
-                user_obj.save()
+                    # 更新用户收款
+                    user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
+                    user_obj.save()
 
-                # 更新商家存钱
-                bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
-                bank_obj.last_time = datetime.datetime.now()
-                bank_obj.save()
-                notify_url = user_obj.notify_url
-                if not notify_url:
-                    return Response('success')
-                data_dict = {}
-                data_dict['pay_status'] = order_obj.pay_status
-                data_dict['add_time'] = str(order_obj.add_time)
-                data_dict['pay_time'] = str(order_obj.pay_time)
-                data_dict['total_amount'] = str(order_obj.total_amount)
-                data_dict['order_id'] = order_obj.order_id
-                data_dict['order_no'] = order_obj.order_no
-                data_dict['user_msg'] = order_obj.user_msg
-                resp['data'] = data_dict
-                r = json.dumps(resp)
-                headers = {'Content-Type': 'application/json'}
-                try:
-                    res = requests.post(notify_url, headers=headers, data=r, timeout=5, stream=True)
-                    if res.text == 'success':
-                        return Response(data=resp, status=200)
-                    else:
+                    # 更新商家存钱
+                    bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
+                    bank_obj.last_time = datetime.datetime.now()
+                    bank_obj.save()
+                    notify_url = user_obj.notify_url
+                    if not notify_url:
+                        return Response('success')
+                    data_dict = {}
+                    data_dict['pay_status'] = order_obj.pay_status
+                    data_dict['add_time'] = str(order_obj.add_time)
+                    data_dict['pay_time'] = str(order_obj.pay_time)
+                    data_dict['total_amount'] = str(order_obj.total_amount)
+                    data_dict['order_id'] = order_obj.order_id
+                    data_dict['order_no'] = order_obj.order_no
+                    data_dict['user_msg'] = order_obj.user_msg
+                    resp['data'] = data_dict
+                    r = json.dumps(resp)
+                    headers = {'Content-Type': 'application/json'}
+                    try:
+                        res = requests.post(notify_url, headers=headers, data=r, timeout=5, stream=True)
+                        if res.text == 'success':
+                            return Response(data=resp, status=200)
+                        else:
+                            order_obj.pay_status = 'NOTICE_FAIL'
+                            order_obj.save()
+                            return Response(data=resp, status=400)
+                    except Exception:
                         order_obj.pay_status = 'NOTICE_FAIL'
                         order_obj.save()
-                        return Response(data=resp, status=400)
-                except Exception:
-                    order_obj.pay_status = 'NOTICE_FAIL'
-                    order_obj.save()
-                    return Response(data='状态异常', status=404)
+                        return Response(data='状态异常', status=404)
+                else:
+                    resp['msg'] = '加密错误'
+                    code = 400
+                    return Response(data=resp, status=code)
             else:
-                resp['msg'] = '加密错误'
+                resp['msg'] = '设备不存在'
                 code = 400
                 return Response(data=resp, status=code)
 
@@ -552,7 +560,7 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
         serializer.is_valid(raise_exception=True)
         if user_up.is_proxy:
             order = self.perform_create(serializer)
-            print(111111)
+
             response_data = serializer.data
             headers = self.get_success_headers(response_data)
             code = 201
@@ -586,40 +594,68 @@ import qrcode
 
 
 def pay(request):
-    # if request.method == 'POST':
-    pay_url = request.get_full_path()
-    url_list = pay_url.split('/pay/?id=')
-    if len(url_list) == 2:
-        order_no = url_list[1]
-        if order_no:
-            the_time = datetime.datetime.now() - datetime.timedelta(minutes=10)
-            order_queryset = OrderInfo.objects.filter(order_no=order_no, add_time__gte=the_time)
-            if order_queryset:
-                pay_url = order_queryset[0].pay_url
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=4,
-                )
-                qr.add_data(pay_url)
-                qr.make(fit=True)
-                img = qr.make_image()
-                output_buffer = BytesIO()
-                img.save(output_buffer, format='JPEG')
-                binary_data = output_buffer.getvalue()
-                base64_data = base64.b64encode(binary_data)
-                # print('pay_url', base64_data)
-                a = (b'data:image/png;base64,' + (base64_data)).decode('utf-8')
-                return render(request, 'pay.html', {
-                    "pay_url": a
-                })
-            else:
-                return HttpResponse('订单失效')
+    order_id = request.GET.get('id')
+    if order_id:
+        the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+        order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
+        if order_queryset:
+            pay_url = order_queryset[0].pay_url
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(pay_url)
+            qr.make(fit=True)
+            img = qr.make_image()
+            output_buffer = BytesIO()
+            img.save(output_buffer, format='JPEG')
+            binary_data = output_buffer.getvalue()
+            base64_data = base64.b64encode(binary_data)
+            # print('pay_url', base64_data)
+            a = (b'data:image/png;base64,' + (base64_data)).decode('utf-8')
+            return render(request, 'pay.html', {
+                "pay_url": a
+            })
         else:
-            return HttpResponse('链接错误')
+            return HttpResponse('订单失效')
     else:
         return HttpResponse('链接错误')
+
+
+
+
+
+def mobile_pay(request):
+    order_id = request.GET.get('id')
+    resp = {}
+    if order_id:
+        the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+        order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
+        if order_queryset:
+            order_obj = order_queryset[0]
+            account_num = order_obj.account_num
+            bank_qset = BankInfo.objects.filter(account_num=account_num)
+            if bank_qset:
+                bank_obj = bank_qset[0]
+                resp['msg'] = '操作成功'
+                resp['money'] = order_obj.total_amount
+                resp['card_index'] = bank_obj.card_index
+                resp['name'] = bank_obj.name
+                resp['bank_mark'] = bank_obj.bank_mark
+                return JsonResponse(data=resp, status=200)
+            else:
+                resp['msg'] = '银行卡不存在'
+                return JsonResponse(data=resp, status=400)
+
+        else:
+            resp['msg'] = '订单不存在'
+            return JsonResponse(data=resp, status=400)
+
+    else:
+        resp['msg'] = '订单不存在'
+        return JsonResponse(data=resp, status=400)
 
 
 class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.UpdateModelMixin,

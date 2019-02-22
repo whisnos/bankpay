@@ -35,16 +35,21 @@ class OrderUpdateSeralizer(serializers.ModelSerializer):
 
 
 class BankinfoSerializer(serializers.ModelSerializer):
-    QUESTION_TYPES = (
-        (10, 'Blurb'),
-        (20, 'Group Header'),
-    )
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     total_money = serializers.CharField(read_only=True)
     account_num = serializers.CharField(label='银行卡号')
     mobile = serializers.CharField(label='手机号')
+    devices_name = serializers.SerializerMethodField(read_only=True)
+    devices = serializers.CharField(label='所属设备')
+    # is_active = serializers.CharField(label='是否激活', required=False)
+
+    def get_devices_name(self, obj):
+        device_queryset = DeviceName.objects.filter(id=obj.devices_id)
+        if device_queryset:
+            return device_queryset[0].username
+        return '未找到相应设备'
 
     def validate_mobile(self, data):
         if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
@@ -52,10 +57,9 @@ class BankinfoSerializer(serializers.ModelSerializer):
         return data
 
     # devices = serializers.ChoiceField(label='所属设备',choices='QUESTION_TYPES')
-    devices = serializers.CharField(label='所属设备')
 
     def validate_devices(self, obj):
-        if not re.match(r'^(\+|-)?[1-9][0-9]*$', obj):
+        if not re.match(r'^(\+)?[1-9][0-9]*$', obj):
             raise serializers.ValidationError('格式错误')
         device_queryset = DeviceName.objects.filter(id=obj)
         if not device_queryset:
@@ -70,11 +74,16 @@ class BankinfoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("银行卡已存在")
         return data
 
+    # def validate_is_active(self, obj):
+    #     if str(obj) not in ['0', '1']:
+    #         raise serializers.ValidationError('传值错误')
+    #     return obj
+
     class Meta:
         model = BankInfo
-        # fields = '__all__'
-        fields = ['user', "id", "last_time", 'add_time', 'total_money', 'name', 'account_num', 'bank_type', 'open_bank',
-                  'mobile', 'is_active', 'bank_tel', 'card_index', 'bank_mark', 'devices']
+        fields = '__all__'
+        # fields = ['user', "id", "last_time", 'add_time', 'total_money', 'name', 'account_num', 'bank_type', 'open_bank',
+        #           'mobile', 'is_active', 'bank_tel', 'card_index', 'bank_mark', 'devices', 'devices_name']
 
 
 class UpdateBankinfoSerializer(serializers.ModelSerializer):
@@ -84,9 +93,10 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     total_money = serializers.CharField(read_only=True)
     account_num = serializers.CharField(label='银行卡号', required=False)
     bank_type = serializers.CharField(label='银行类型', required=False)
-    is_active = serializers.CharField(label='是否激活', required=False)
+    # is_active = serializers.CharField(label='是否激活', required=False)
     name = serializers.CharField(label='姓名', required=False)
     mobile = serializers.CharField(label='手机', required=False)
+    devices = serializers.CharField(label='所属设备',required=False)
 
     def validate_mobile(self, data):
         if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
@@ -96,20 +106,32 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     def validate_name(self, data):
         user = self.context['request'].user
         bank_queryset = BankInfo.objects.filter(name=data, user_id=user.id)
-        if bank_queryset:
-            raise serializers.ValidationError("银行卡已存在")
+        if bank_queryset and bank_queryset.exclude(id=bank_queryset[0].id):
+            raise serializers.ValidationError("姓名已存在")
         return data
 
-    def validate_is_active(self, obj):
-        if str(obj) not in ['0', '1']:
-            raise serializers.ValidationError('传值错误')
-        return obj
+    # def validate_is_active(self, obj):
+    #     if str(obj) not in ['0', '1']:
+    #         raise serializers.ValidationError('传值错误')
+    #     return obj
 
     def validate_account_num(self, data):
         bank_queryset = BankInfo.objects.filter(account_num=data)
-        if bank_queryset:
+        if bank_queryset and bank_queryset.exclude(id=bank_queryset[0].id):
             raise serializers.ValidationError("银行卡已存在")
+        # if bank_queryset:
+        #     raise serializers.ValidationError("银行卡已存在")
         return data
+
+    def validate_devices(self, obj):
+        if not re.match(r'^(\+)?[1-9][0-9]*$', obj):
+            raise serializers.ValidationError('格式错误')
+        device_queryset = DeviceName.objects.filter(id=obj)
+        if not device_queryset:
+            raise serializers.ValidationError('对应设备不存在')
+        obj = device_queryset[0]
+
+        return obj
 
     class Meta:
         model = BankInfo

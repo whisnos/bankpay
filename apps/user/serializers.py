@@ -119,6 +119,15 @@ class ProxysSerializer(serializers.ModelSerializer):
     add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
     # 今日收款金额 含 支付中 成功 关闭
     today_receive_all = serializers.SerializerMethodField(read_only=True)
+    service_rate = serializers.CharField(read_only=True)
+
+    # def update(self, instance, validated_data):
+
+    def validate_service_rate(self, data):
+        if not re.match(r'(^0\.(0[1-9]|[1-9]{1,2})$)', str(data)):
+            raise serializers.ValidationError('费率异常，请重新输入')
+        print(1111111111)
+        return data
 
     def get_today_receive_all(self, obj):
         order_queryset = OrderInfo.objects.filter(
@@ -238,7 +247,7 @@ class ProxysSerializer(serializers.ModelSerializer):
 
     def get_today_total_num(self, obj):
         return OrderInfo.objects.filter(user=obj,
-            add_time__gte=self.today_time).count()
+                                        add_time__gte=self.today_time).count()
 
     # 今天 成功数
     today_success_num = serializers.SerializerMethodField(read_only=True)
@@ -433,7 +442,7 @@ class ProxysSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'username', 'label', 'value', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy',
-                  'is_active', 'add_time', 'total_money',
+                  'is_active', 'service_rate', 'add_time', 'total_money',
                   'total_count_num',
                   'total_count_success_num', 'total_count_fail_num', 'total_count_paying_num', 'today_receive_all',
                   'today_receive_success',
@@ -458,7 +467,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_time = time.strftime('%Y-%m-%d', time.localtime(time.time()))
     yesterday_time = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     month_time = datetime.datetime(datetime.date.today().year, datetime.date.today().month, 1)
-    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M',read_only=True)
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
     username = serializers.CharField(label='用户名', read_only=True, allow_blank=False, help_text='用户名')
     uid = serializers.CharField(label='用户uid', read_only=True, allow_blank=False, help_text='用户uid')
     mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
@@ -475,6 +484,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     is_active = serializers.BooleanField(label='是否激活', required=False)
     service_rate = serializers.CharField(read_only=True)
+
+    def validate_service_rate(self, data):
+        if not re.match(r'(^0\.(0[1-9]|[1-9]{1,2})$)', str(data)):
+            raise serializers.ValidationError('金额异常，请重新输入')
+        print(1111111111)
+        return data
 
     def validate_add_money(self, data):
         if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data)):
@@ -727,12 +742,57 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id','username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active',
+        fields = ['id', 'username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active',
                   'proxys', 'banks',
-                  'minus_money', 'add_money', 'service_rate','add_time', 'hour_total_num',
+                  'minus_money', 'add_money', 'service_rate', 'add_time', 'hour_total_num',
                   'hour_success_num', 'hour_rate', 'hour_money_all', 'hour_money_success', 'today_total_num',
                   'today_success_num', 'today_rate', 'today_money_all', 'today_money_success', 'yesterday_total_num',
                   'yesterday_success_num', 'yesterday_rate', 'yesterday_money_all', 'yesterday_money_success',
                   'month_total_num',
                   'month_success_num', 'month_rate', 'month_money_all', 'month_money_success', 'all_total_num',
                   'all_success_num', 'all_rate', 'all_money_all', 'all_money_success']
+
+
+class UpdateUserSerializer(serializers.ModelSerializer):
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
+    username = serializers.CharField(label='用户名', read_only=True, allow_blank=False, help_text='用户名')
+    uid = serializers.CharField(label='用户uid', read_only=True, allow_blank=False, help_text='用户uid')
+    mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
+    auth_code = serializers.CharField(label='用户授权码', read_only=True, allow_blank=False, help_text='用户授权码')
+    is_proxy = serializers.BooleanField(label='是否代理', read_only=True)
+    total_money = serializers.CharField(read_only=True)
+    proxys = ProxysSerializer(many=True, read_only=True)
+    banks = BankInfoSerializer(many=True, read_only=True)
+
+    add_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='加款', write_only=True,
+                                         required=False)
+    minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
+                                           required=False)
+
+    is_active = serializers.BooleanField(label='是否激活', required=False)
+    password = serializers.CharField(label='密码', required=False, allow_blank=False, min_length=6,
+                                     style={'input_type': 'password'}, help_text='密码')
+
+    def validate(self, attrs):
+        if attrs.get('service_rate'):
+            if not re.match(r'(^0\.(0[1-9]|[1-9]{1,2})$)', str(attrs.get('service_rate'))):
+                raise serializers.ValidationError('费率异常，请重新输入')
+        if attrs.get('add_money') or attrs.get('add_money') == 0:
+            if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
+                            str(attrs.get('add_money'))) or attrs.get('add_money') == 0:
+                raise serializers.ValidationError('金额异常，请重新输入')
+        if str(attrs.get('is_active')) not in ['True', 'False']:
+            raise serializers.ValidationError('传值错误')
+        return attrs
+
+
+    def validate_minus_money(self, data):
+        if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)', str(data)):
+            raise serializers.ValidationError('金额异常，请重新输入')
+        if data == 0:
+            raise serializers.ValidationError('金额异常，请重新输入')
+        return data
+
+    class Meta:
+        model = UserProfile
+        fields = "__all__"

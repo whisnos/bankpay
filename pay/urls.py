@@ -21,7 +21,7 @@ from rest_framework_jwt.views import obtain_jwt_token
 
 from user.views import UserProfileViewset, device_login
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView,WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset
+    pay, DevicesViewset,mobile_pay
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -37,5 +37,6 @@ urlpatterns = [
     url(r'^get_pay/', GetPayView.as_view(), name="get_pay"),
     url(r'^verify_pay/', VerifyView.as_view(), name="verify_pay"),
     url(r'^pay/', pay, name="pay"),
+    url(r'^mobile_pay/', mobile_pay, name="mobile_pay"),
     url(r'^device_login/$', device_login, name='device_login'),
 ]

@@ -18,7 +18,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from user.filters import UserFilter
 from user.models import UserProfile, DeviceName
-from user.serializers import RegisterUserSerializer, UserDetailSerializer
+from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code
@@ -101,6 +101,8 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             return RegisterUserSerializer
         elif self.action == "list":
             return UserDetailSerializer
+        elif self.action == "update":
+            return UpdateUserSerializer
         return UserDetailSerializer
 
     def get_permissions(self):
@@ -130,12 +132,25 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
-        print('is_active', is_active)
         print('get_proxyid', get_proxyid)
         service_rate = self.request.data.get('service_rate', '')
 
+        if self.request.user.is_superuser:
+            if get_proxyid:
+                user_queryset = UserProfile.objects.filter(id=get_proxyid)
+                if user_queryset:
+                    if password == password2:
+                        if password:
+                            user=user_queryset[0]
+                            user.set_password(password)
+                            resp['msg'].append('密码修改成功')
+                            user.save()
+                    else:
+                        code = 404
+                        resp['msg'].append('输入密码不一致')
+
         # tuoxie 修改 tuoxie001
-        if not self.request.user.is_proxy:
+        if not self.request.user.is_proxy and not self.request.user.is_superuser:
             id_list = [user_obj.id for user_obj in UserProfile.objects.filter(proxy_id=self.request.user.id)]
             if get_proxyid:
                 if int(get_proxyid) in id_list:
@@ -165,17 +180,19 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
                     if auth_code:
                         user.auth_code = make_auth_code()
-                        resp['msg'].append(user.auth_code)
-                    if is_active:
-                        # if is_active == 'true':
-                        #     is_active = True
-                        # if is_active == 'false':
-                        #     is_active = False
+                        resp['msg'].append('秘钥修改成功')
+                        resp['auth_code']=user.auth_code
+                        # resp['auth_code'].append(str(user.auth_code))
+                    if str(is_active):
+                        if is_active == 'true':
+                            is_active = True
+                        if is_active == 'false':
+                            is_active = False
                         resp['msg'].append('用户状态修改成功')
                         user.is_active = is_active
                     if service_rate:
                         resp['msg'].append('费率修改成功')
-                        user.service_rate = service_rate
+                        user.service_rate = float(service_rate)
                     user.save()
                 else:
                     code = 404
