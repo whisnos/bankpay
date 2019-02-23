@@ -19,7 +19,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
-from user.views import UserProfileViewset, device_login
+from user.views import UserProfileViewset, device_login,NoticeInfoViewset,ChartInfoViewset
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView,WithDrawViewset, VerifyViewset, \
     pay, DevicesViewset,mobile_pay
 
@@ -30,6 +30,9 @@ route.register(r'banks', BankViewset, base_name="banks")
 route.register(r'drawings', WithDrawViewset, base_name='moneys')
 route.register(r'devices', DevicesViewset, base_name='devices')
 route.register(r'verifys', VerifyViewset, base_name='verifys')  # 验证 手机揽收 后的信息
+route.register(r'notices', NoticeInfoViewset, base_name="notices")
+route.register(r'charts', ChartInfoViewset, base_name="charts")
+
 urlpatterns = [
     url(r'^', include(route.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),

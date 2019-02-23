@@ -1,4 +1,4 @@
-import json
+import json,time
 from decimal import Decimal
 
 from django.contrib.auth.backends import ModelBackend
@@ -16,9 +16,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from trade.models import OrderInfo
+from trade.serializers import OrderListSerializer
 from user.filters import UserFilter
-from user.models import UserProfile, DeviceName
-from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer
+from user.models import UserProfile, DeviceName, NoticeInfo
+from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code
@@ -296,3 +298,65 @@ def device_login(request):
         code = 400
         resp['msg'] = '仅支持POST'
         return JsonResponse(resp, status=code)
+
+class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin,mixins.CreateModelMixin):
+    serializer_class = NoticeInfoSerializer
+    queryset = NoticeInfo.objects.all().order_by('-add_time')
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    pagination_class = UserListPagination
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [IsAuthenticated()]
+        elif self.action == "create":
+            return []
+        else:
+            return []
+
+    def create(self, request, *args, **kwargs):
+        if self.request.user.is_superuser:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            code = 201
+            self.perform_create(serializer)
+            response_data = {'msg': '创建成功'}
+            headers = self.get_success_headers(response_data)
+            return Response(response_data, status=code, headers=headers)
+
+        code = 403
+        response_data = {'msg': '没有权限'}
+        headers = self.get_success_headers(response_data)
+        return Response(response_data, status=code, headers=headers)
+
+class ChartInfoViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = OrderListSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    def make_userid_list(self,obj):
+        userid_list = []
+        if not obj.is_proxy:
+            user_qset = UserProfile.objects.filter(proxy_id=obj.id)
+            for user in user_qset:
+                userid_list.append(user.id)
+        elif obj.is_proxy:
+            userid_list.append(obj.id)
+        return  userid_list
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [IsAuthenticated()]
+        elif self.action == "create":
+            return []
+        else:
+            return []
+
+    def get_queryset(self):
+        user = self.request.user
+        userid_list=self.make_userid_list(user)
+        if user:
+            today_time = time.strftime('%Y-%m-%d', time.localtime())
+            return OrderInfo.objects.filter(
+                Q(pay_status__icontains='TRADE_SUCCESS') | Q(pay_status__icontains='NOTICE_FAIL'),
+                user_id__in=userid_list, add_time__gte=today_time,
+            ).order_by('-add_time')
+        return []

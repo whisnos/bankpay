@@ -143,7 +143,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
     username = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.SerializerMethodField(read_only=True)
-
+    total_amount = serializers.FloatField(read_only=True)
     def get_username(self, obj):
         user_queryset = UserProfile.objects.filter(id=obj.user_id)
         if user_queryset:

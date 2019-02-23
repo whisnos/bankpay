@@ -77,6 +77,12 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
 
     def get_queryset(self):
         user = self.request.user
+
+        # 关闭超时订单
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+            pay_status='TRADE_CLOSE')
+
         if user.is_superuser:
             return OrderInfo.objects.all().order_by('id')
         if not user.is_proxy:
@@ -100,7 +106,7 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if user_up.is_proxy:
-            order = self.perform_create(serializer)
+            self.perform_create(serializer)
             response_data = serializer.data
             headers = self.get_success_headers(response_data)
             code = 201
@@ -422,27 +428,27 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 device_obj = device_queryset[0]
                 bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
                 if not bank_queryset:
-                    code = 400
+                    code = 404
                     resp['msg'] = '银行卡不存在，联系管理员处理'
                     return Response(data=resp, status=code)
                 elif len(bank_queryset) == 1:
                     bank_obj = bank_queryset[0]
                 else:
                     resp['msg'] = '存在多张银行卡，需手动处理'
-                    code = 400
+                    code = 404
                     return Response(data=resp, status=code)
 
                 order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=money,
                                                           account_num=bank_obj.account_num)
                 if not order_queryset:
-                    code = 400
+                    code = 404
                     resp['msg'] = '订单不存在，联系管理员处理'
                     return Response(data=resp, status=code)
                 elif len(order_queryset) == 1:
                     order_obj = order_queryset[0]
                 else:
                     resp['msg'] = '存在多笔订单，需手动处理'
-                    code = 400
+                    code = 404
                     return Response(data=resp, status=code)
                 # 加密顺序 money + bank_tel + auth_code
                 new_temp = str(money) + str(bank_tel) + str(auth_code)
@@ -470,7 +476,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     bank_obj.save()
                     notify_url = user_obj.notify_url
                     if not notify_url:
-                        return Response('success')
+                        resp['msg']='订单处理成功，无效notify_url，通知失败'
+                        return Response(data=resp,status=400)
                     data_dict = {}
                     data_dict['pay_status'] = order_obj.pay_status
                     data_dict['add_time'] = str(order_obj.add_time)
@@ -483,17 +490,20 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     r = json.dumps(resp)
                     headers = {'Content-Type': 'application/json'}
                     try:
-                        res = requests.post(notify_url, headers=headers, data=r, timeout=5, stream=True)
+                        res = requests.post(notify_url, headers=headers, data=r, timeout=10, stream=True)
                         if res.text == 'success':
+                            resp['msg'] = '订单处理成功!'
                             return Response(data=resp, status=200)
                         else:
                             order_obj.pay_status = 'NOTICE_FAIL'
                             order_obj.save()
+                            resp['msg'] = '订单处理成功，通知失败1'
                             return Response(data=resp, status=400)
                     except Exception:
                         order_obj.pay_status = 'NOTICE_FAIL'
                         order_obj.save()
-                        return Response(data='状态异常', status=404)
+                        resp['msg'] = '订单处理成功，通知失败'
+                        return Response(data=resp, status=400)
                 else:
                     resp['msg'] = '加密错误'
                     code = 400
@@ -597,9 +607,17 @@ def pay(request):
     order_id = request.GET.get('id')
     if order_id:
         the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+
+        # 关闭超时订单
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+            pay_status='TRADE_CLOSE')
+
         order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
         if order_queryset:
             pay_url = order_queryset[0].pay_url
+
+
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -631,6 +649,12 @@ def mobile_pay(request):
     order_id = request.GET.get('id')
     resp = {}
     if order_id:
+
+        # 关闭超时订单
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+            pay_status='TRADE_CLOSE')
+
         the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
         order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
         if order_queryset:
