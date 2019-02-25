@@ -1,4 +1,4 @@
-import json,time
+import json, time
 from decimal import Decimal
 
 from django.contrib.auth.backends import ModelBackend
@@ -143,7 +143,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                 if user_queryset:
                     if password == password2:
                         if password:
-                            user=user_queryset[0]
+                            user = user_queryset[0]
                             user.set_password(password)
                             resp['msg'].append('密码修改成功')
                             user.save()
@@ -183,7 +183,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     if auth_code:
                         user.auth_code = make_auth_code()
                         resp['msg'].append('秘钥修改成功')
-                        resp['auth_code']=user.auth_code
+                        resp['auth_code'] = user.auth_code
                         # resp['auth_code'].append(str(user.auth_code))
                     if str(is_active):
                         if is_active == 'true':
@@ -299,7 +299,9 @@ def device_login(request):
         resp['msg'] = '仅支持POST'
         return JsonResponse(resp, status=code)
 
-class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin,mixins.CreateModelMixin):
+
+class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin,
+                        mixins.CreateModelMixin):
     serializer_class = NoticeInfoSerializer
     queryset = NoticeInfo.objects.all().order_by('-add_time')
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -310,7 +312,9 @@ class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixi
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
-            return []
+            return [IsAuthenticated()]
+        elif self.action == "list":
+            return [IsAuthenticated()]
         else:
             return []
 
@@ -329,11 +333,13 @@ class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixi
         headers = self.get_success_headers(response_data)
         return Response(response_data, status=code, headers=headers)
 
-class ChartInfoViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
+
+class ChartInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     serializer_class = OrderListSerializer
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    def make_userid_list(self,obj):
+
+    def make_userid_list(self, obj):
         userid_list = []
         if not obj.is_proxy:
             user_qset = UserProfile.objects.filter(proxy_id=obj.id)
@@ -341,18 +347,22 @@ class ChartInfoViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
                 userid_list.append(user.id)
         elif obj.is_proxy:
             userid_list.append(obj.id)
-        return  userid_list
+        return userid_list
+
     def get_permissions(self):
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
-            return []
+            return [IsAuthenticated()]
+        elif self.action == "list":
+            return [IsAuthenticated()]
         else:
             return []
 
     def get_queryset(self):
         user = self.request.user
-        userid_list=self.make_userid_list(user)
+        print('user', user)
+        userid_list = self.make_userid_list(user)
         if user:
             today_time = time.strftime('%Y-%m-%d', time.localtime())
             return OrderInfo.objects.filter(

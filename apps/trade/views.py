@@ -278,7 +278,8 @@ class GetPayView(views.APIView):
         m = hashlib.md5()
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
-        if my_key == my_key:
+        print(my_key,key,new_temp)
+        if key == my_key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -452,8 +453,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 m = hashlib.md5()
                 m.update(new_temp.encode('utf-8'))
                 my_key = m.hexdigest()
-                print('my_key', my_key, key)
-                if my_key == my_key:
+                if key == my_key:
                     order_obj.pay_status = 'TRADE_SUCCESS'
                     order_obj.pay_time = datetime.datetime.now()
                     print('订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
