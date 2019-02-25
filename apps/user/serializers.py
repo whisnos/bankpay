@@ -806,7 +806,8 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
                             str(attrs.get('add_money'))) or attrs.get('add_money') == 0:
                 raise serializers.ValidationError('金额异常，请重新输入')
-        if str(attrs.get('is_active')) not in ['True', 'False']:
+        if str(attrs.get('is_active')) not in ['True', 'False','None']:
+            print(555555)
             raise serializers.ValidationError('传值错误')
         return attrs
 

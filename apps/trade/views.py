@@ -1,12 +1,6 @@
-import hashlib
-import json
-import random
-import re
-import time
-import datetime
+import hashlib,json,random,re,time,datetime,requests
 from io import BytesIO
 
-import requests
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
 from django.http import HttpResponse,JsonResponse
@@ -14,20 +8,21 @@ from django.shortcuts import render
 from decimal import Decimal
 # Create your views here.
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import mixins, viewsets, status, views
+from rest_framework import mixins, viewsets, filters, views
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from pay.settings import FONT_DOMAIN, CLOSE_TIME
 from trade.filters import WithDrawFilter, OrdersFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
     UpdateDeviceSerializer, UpdateBankinfoSerializer
 from user.models import BankInfo, UserProfile, DeviceName
-from utils.make_code import make_short_code, make_login_token, make_auth_code
+from utils.make_code import make_short_code
 from utils.permissions import IsOwnerOrReadOnly
 
 
@@ -79,8 +74,8 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         user = self.request.user
 
         # 关闭超时订单
-        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
-        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=CLOSE_TIME)
+        OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
             pay_status='TRADE_CLOSE')
 
         if user.is_superuser:
@@ -295,7 +290,7 @@ class GetPayView(views.APIView):
                 return Response(resp)
 
             # 关闭超时订单
-            now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
+            now_time = datetime.datetime.now() - datetime.timedelta(minutes=CLOSE_TIME)
             order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
                 pay_status='TRADE_CLOSE')
 
@@ -345,7 +340,9 @@ class GetPayView(views.APIView):
             resp['bank_mark'] = bank_mark
             resp['card_index'] = card_index
             resp['add_time'] = str(order.add_time)
-            resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
+            # resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
+            resp['pay_url'] = FONT_DOMAIN + '/get_qrcode/' + order_no
+
             return Response(resp)
         resp['code'] = 404
         resp['msg'] = 'key匹配错误'
@@ -476,6 +473,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     bank_obj.save()
                     notify_url = user_obj.notify_url
                     if not notify_url:
+                        order_obj.pay_status = 'NOTICE_FAIL'
+                        order_obj.save()
                         resp['msg']='订单处理成功，无效notify_url，通知失败'
                         return Response(data=resp,status=400)
                     data_dict = {}
@@ -524,9 +523,9 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = WithDrawSerializer
     pagination_class = OrderListPagination
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (DjangoFilterBackend,filters.OrderingFilter)
     filter_class = WithDrawFilter
-
+    ordering_fields = ('money','real_money')
     def get_serializer_class(self):
         if self.action == "retrieve":
             return WithDrawSerializer
@@ -606,14 +605,13 @@ import qrcode
 def pay(request):
     order_id = request.GET.get('id')
     if order_id:
-        the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
 
         # 关闭超时订单
-        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
-        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=CLOSE_TIME)
+        OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
             pay_status='TRADE_CLOSE')
 
-        order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
+        order_queryset = OrderInfo.objects.filter(order_no=order_id,pay_status='PAYING')
         if order_queryset:
             pay_url = order_queryset[0].pay_url
 
@@ -651,12 +649,11 @@ def mobile_pay(request):
     if order_id:
 
         # 关闭超时订单
-        now_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
-        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
+        now_time = datetime.datetime.now() - datetime.timedelta(minutes=CLOSE_TIME)
+        OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
             pay_status='TRADE_CLOSE')
 
-        the_time = datetime.datetime.now() - datetime.timedelta(minutes=100)
-        order_queryset = OrderInfo.objects.filter(order_no=order_id, add_time__gte=the_time)
+        order_queryset = OrderInfo.objects.filter(pay_status='PAYING',order_no=order_id)
         if order_queryset:
             order_obj = order_queryset[0]
             account_num = order_obj.account_num

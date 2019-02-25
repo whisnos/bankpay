@@ -134,7 +134,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
-        print('get_proxyid', get_proxyid)
+        print('auth_code', auth_code)
         service_rate = self.request.data.get('service_rate', '')
 
         if self.request.user.is_superuser:
