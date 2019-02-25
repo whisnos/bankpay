@@ -21,7 +21,7 @@ from rest_framework_jwt.views import obtain_jwt_token
 
 from user.views import UserProfileViewset, device_login,NoticeInfoViewset,ChartInfoViewset
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView,WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset,mobile_pay
+    pay, DevicesViewset,mobile_pay,export_csv
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -42,4 +42,5 @@ urlpatterns = [
     url(r'^pay/', pay, name="pay"),
     url(r'^mobile_pay/', mobile_pay, name="mobile_pay"),
     url(r'^device_login/$', device_login, name='device_login'),
+    url(r'^export_csv/$', export_csv, name='export_csv'),
 ]

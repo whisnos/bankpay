@@ -144,3 +144,4 @@ AUTHENTICATION_BACKENDS = (
 CLOSE_TIME = 10
 # 前端域名
 FONT_DOMAIN = 'https://user.cfpay.cc'
+

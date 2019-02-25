@@ -51,6 +51,17 @@ class CustomModelBackend(ModelBackend):
         # except Exception as e:
         #     return None
 
+# from __future__ import absolute_import
+
+from rest_framework.settings import api_settings
+from rest_framework_csv import renderers as r
+
+from import_export import resources
+from trade.models import OrderInfo
+class SchoolResource(resources.ModelResource):
+    class Meta:
+        model = OrderInfo
+        fields = ('pay_status', 'total_amount')
 
 class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.RetrieveModelMixin,
                    mixins.UpdateModelMixin):
@@ -63,6 +74,7 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
     filter_backends = (DjangoFilterBackend,)
     filter_class = OrdersFilter
 
+    renderer_classes = (r.CSVRenderer,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
     def get_serializer_class(self):
         if self.action == "create":
             return OrderSerializer
@@ -748,3 +760,52 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     #         code = 403
     #         resp['msg'].append('该用户没有操作权限')
     #     return Response(data=resp, status=code)
+
+# def export_csv(request):
+#     dataset = SchoolResource().export()
+#     a = dataset.csv
+#     return HttpResponse(str(a))
+
+
+from django.http import HttpResponse
+from django.template import loader, Context
+
+
+import csv
+
+from django.http import StreamingHttpResponse
+
+
+def export_csv(request):
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="test.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['First row', 'Foo', 'Bar', 'Baz'])
+    writer.writerow(['Second row', 'A', 'B', 'C', '"Testing"', "Here's a quote"])
+    writer.writerow(['Second row', 'A', 'B', 'C', '"Testing"', "Here's a quote"])
+    writer.writerow(['Second row', 'A', 'B', 'C', '"Testing"', "Here's a quote"])
+
+    return response
+
+# class Echo(object):
+#     """An object that implements just the write method of the file-like
+#     interface.
+#     """
+#     def write(self, value):
+#         """Write the value by returning it, instead of storing in a buffer."""
+#         return value
+#
+# def export_csv(request):
+#     """A view that streams a large CSV file."""
+#     # Generate a sequence of rows. The range is based on the maximum number of
+#     # rows that can be handled by a single sheet in most spreadsheet
+#     # applications.
+#     rows = (["Row {}".format(idx), str(idx)] for idx in range(20))
+#     pseudo_buffer = Echo()
+#     writer = csv.writer(pseudo_buffer)
+#     response = StreamingHttpResponse((writer.writerow(row) for row in rows),
+#                                      content_type="text/csv")
+#     response['Content-Disposition'] = 'attachment; filename="test.csv"'
+#     return response
