@@ -1,13 +1,14 @@
-import hashlib,json,random,re,time,datetime,requests
+import hashlib, json, random, re, time, datetime, requests
 from io import BytesIO
 
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
-from django.http import HttpResponse,JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from decimal import Decimal
 # Create your views here.
 from django_filters.rest_framework import DjangoFilterBackend
+# from import_export.admin import ExportMixin
 from rest_framework import mixins, viewsets, filters, views
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.pagination import PageNumberPagination
@@ -30,7 +31,7 @@ class OrderListPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     page_query_param = 'page'
-    max_page_size = 100
+    # max_page_size = 100000
 
 
 class CustomModelBackend(ModelBackend):
@@ -51,19 +52,15 @@ class CustomModelBackend(ModelBackend):
         # except Exception as e:
         #     return None
 
-# from __future__ import absolute_import
 
-from rest_framework.settings import api_settings
-from rest_framework_csv import renderers as r
-
-from import_export import resources
 from trade.models import OrderInfo
-class SchoolResource(resources.ModelResource):
-    class Meta:
-        model = OrderInfo
-        fields = ('pay_status', 'total_amount')
+from drf_renderer_xlsx.renderers import XLSXRenderer
+from drf_renderer_xlsx.mixins import XLSXFileMixin
+from rest_framework import renderers
 
-class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.RetrieveModelMixin,
+
+class OrderViewset(XLSXFileMixin, mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet,
+                   mixins.RetrieveModelMixin,
                    mixins.UpdateModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -73,8 +70,22 @@ class OrderViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
 
     filter_backends = (DjangoFilterBackend,)
     filter_class = OrdersFilter
+    renderer_classes = (renderers.JSONRenderer, XLSXRenderer, renderers.BrowsableAPIRenderer)
 
-    renderer_classes = (r.CSVRenderer,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
+    column_header = {
+        'titles': [
+            "订单id",
+            "用户id",
+            "用户名",
+            "支付状态",
+            "金额",
+            "商户订单号",
+            "支付时间",
+            "创建时间",
+            "订单编号",
+        ]
+    }
+
     def get_serializer_class(self):
         if self.action == "create":
             return OrderSerializer
@@ -290,8 +301,8 @@ class GetPayView(views.APIView):
         m = hashlib.md5()
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
-        print(my_key,key,new_temp)
-        if key == my_key:
+        print(my_key, key, new_temp)
+        if my_key == key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -345,13 +356,15 @@ class GetPayView(views.APIView):
             order.save()
             resp['msg'] = '创建成功'
             resp['code'] = 200
-            resp['name'] = name
-            resp['account_num'] = account_num
+            # resp['name'] = name
+            # resp['account_num'] = account_num
             resp['total_amount'] = total_amount
-            resp['bank_type'] = bank_type
-            resp['open_bank'] = open_bank
-            resp['bank_mark'] = bank_mark
-            resp['card_index'] = card_index
+            resp['order_no'] = order_no
+            resp['order_id'] = order_id
+            # resp['bank_type'] = bank_type
+            # resp['open_bank'] = open_bank
+            # resp['bank_mark'] = bank_mark
+            # resp['card_index'] = card_index
             resp['add_time'] = str(order.add_time)
             # resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
             resp['pay_url'] = FONT_DOMAIN + '/get_qrcode/' + order_no
@@ -487,8 +500,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     if not notify_url:
                         order_obj.pay_status = 'NOTICE_FAIL'
                         order_obj.save()
-                        resp['msg']='订单处理成功，无效notify_url，通知失败'
-                        return Response(data=resp,status=400)
+                        resp['msg'] = '订单处理成功，无效notify_url，通知失败'
+                        return Response(data=resp, status=400)
                     data_dict = {}
                     data_dict['pay_status'] = order_obj.pay_status
                     data_dict['add_time'] = str(order_obj.add_time)
@@ -529,15 +542,36 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
         return Response(data=resp, status=code)
 
 
-class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
+class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
                       mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = WithDrawSerializer
     pagination_class = OrderListPagination
-    filter_backends = (DjangoFilterBackend,filters.OrderingFilter)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
     filter_class = WithDrawFilter
-    ordering_fields = ('money','real_money')
+    ordering_fields = ('money', 'real_money')
+    renderer_classes = (renderers.JSONRenderer, XLSXRenderer, renderers.BrowsableAPIRenderer)
+
+    column_header = {
+        'titles': [
+            "订单id",
+            "用户名",
+            "到账时间",
+            "创建时间",
+            "金额",
+            "银行类型",
+            "开户行地址",
+            "提现备注",
+            "收款账号",
+            "收款人",
+            "提现单号",
+            "费率",
+            "提现状态",
+            "实际到账",
+        ]
+    }
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return WithDrawSerializer
@@ -601,8 +635,10 @@ class WithDrawViewset(mixins.RetrieveModelMixin, mixins.CreateModelMixin,
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
+                withdraw_obj.receive_time = datetime.datetime.now()
                 code = 200
                 resp['msg'].append('状态修改成功')
+                resp['receive_time'] = withdraw_obj.receive_time
                 withdraw_obj.save()
         else:
             code = 403
@@ -623,10 +659,9 @@ def pay(request):
         OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
             pay_status='TRADE_CLOSE')
 
-        order_queryset = OrderInfo.objects.filter(order_no=order_id,pay_status='PAYING')
+        order_queryset = OrderInfo.objects.filter(order_no=order_id, pay_status='PAYING')
         if order_queryset:
             pay_url = order_queryset[0].pay_url
-
 
             qr = qrcode.QRCode(
                 version=1,
@@ -652,9 +687,6 @@ def pay(request):
         return HttpResponse('链接错误')
 
 
-
-
-
 def mobile_pay(request):
     order_id = request.GET.get('id')
     resp = {}
@@ -665,7 +697,7 @@ def mobile_pay(request):
         OrderInfo.objects.filter(pay_status='PAYING', add_time__lte=now_time).update(
             pay_status='TRADE_CLOSE')
 
-        order_queryset = OrderInfo.objects.filter(pay_status='PAYING',order_no=order_id)
+        order_queryset = OrderInfo.objects.filter(pay_status='PAYING', order_no=order_id)
         if order_queryset:
             order_obj = order_queryset[0]
             account_num = order_obj.account_num
@@ -761,6 +793,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     #         resp['msg'].append('该用户没有操作权限')
     #     return Response(data=resp, status=code)
 
+
 # def export_csv(request):
 #     dataset = SchoolResource().export()
 #     a = dataset.csv
@@ -769,7 +802,6 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
 from django.http import HttpResponse
 from django.template import loader, Context
-
 
 import csv
 
@@ -789,6 +821,60 @@ def export_csv(request):
 
     return response
 
+
+class ExportViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    queryset = OrderInfo.objects.all()
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    serializer_class = VerifyPaySerializer
+
+    def list(self, request, *args, **kwargs):
+        user = self.request.user
+        resp = {'msg': '操作成功'}
+        print('user', user)
+        if not user.is_proxy:
+            print('tuoxie导出操作')
+            processed_dict = {}
+            for key, value in self.request.data.items():
+                processed_dict[key] = value
+            money = processed_dict.get('total_amount', '')
+            key = processed_dict.get('key', '')
+            # if key == 'key':
+            print('money', money)
+            user_list = []
+            user_queryset = UserProfile.objects.filter(proxy_id=user.id)
+
+            if not user_queryset:
+                return OrderInfo.objects.filter(user=self.request.user).order_by('-add_time')
+
+            for user_obj in user_queryset:
+                user_list.append(user_obj.id)
+            order_queryset = OrderInfo.objects.filter(Q(user_id__in=user_list) | Q(user=self.request.user)).order_by(
+                '-add_time')
+
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="test.csv"'
+
+            writer = csv.writer(response)
+            writer.writerow(['用户名', '订单时间', '付款时间', '订单编号', '支付状态'])
+
+            for order in order_queryset:
+                a = []
+                a.append(order.user_id)
+                a.append(order.add_time)
+                a.append(order.pay_time)
+                a.append(order.order_no)
+                a.append(order.pay_status)
+                writer.writerow(a)
+
+            return response
+        elif user.is_proxy:
+
+            return None
+
+        code = 403
+        resp['msg'] = '无操作权限'
+        return Response(data=resp, status=code)
 # class Echo(object):
 #     """An object that implements just the write method of the file-like
 #     interface.
