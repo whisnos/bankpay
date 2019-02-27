@@ -19,9 +19,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
-from user.views import UserProfileViewset, device_login,NoticeInfoViewset,ChartInfoViewset,version
-from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView,WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset,mobile_pay
+from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version
+from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, WithDrawViewset, VerifyViewset, \
+    pay, DevicesViewset, mobile_pay,QueryOrderView
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -43,4 +43,6 @@ urlpatterns = [
     url(r'^mobile_pay/', mobile_pay, name="mobile_pay"),
     url(r'^device_login/$', device_login, name='device_login'),
     url(r'^version/$', version, name='version'),
+    # 查询订单接口
+    url(r'^query_order/', QueryOrderView.as_view(), name="query_order"),
 ]

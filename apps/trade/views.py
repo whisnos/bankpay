@@ -894,3 +894,29 @@ class ExportViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
 #                                      content_type="text/csv")
 #     response['Content-Disposition'] = 'attachment; filename="test.csv"'
 #     return response
+
+class QueryOrderView(views.APIView):
+    def post(self, request):
+        processed_dict = {}
+        resp = {'msg': '订单不存在', 'code': 400}
+        for key, value in request.data.items():
+            processed_dict[key] = value
+        uid = processed_dict.get('uid', '')
+        order_no = processed_dict.get('order_no', '')
+        user_queryset = UserProfile.objects.filter(uid=uid)
+        if user_queryset:
+            user = user_queryset[0]
+            order_queryset = OrderInfo.objects.filter(user=user, order_no=order_no)
+            if order_queryset:
+                order = order_queryset[0]
+                resp['msg'] = '查询成功'
+                resp['code'] = 200
+                resp['total_amount'] = order.total_amount
+                resp['usr_msg'] = order.user_msg
+                resp['add_time'] = order.add_time
+                resp['pay_status'] = order.pay_status
+                resp['order_no'] = order.order_no
+                resp['order_id'] = order.order_id
+                resp['pay_time'] = order.pay_time
+                return Response(resp)
+        return Response(resp)
