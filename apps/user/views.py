@@ -19,7 +19,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from trade.models import OrderInfo
 from trade.serializers import OrderListSerializer
 from user.filters import UserFilter
-from user.models import UserProfile, DeviceName, NoticeInfo
+from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo
 from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer
 from django.contrib.auth import get_user_model
 
@@ -370,3 +370,16 @@ class ChartInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
                 user_id__in=userid_list, add_time__gte=today_time,
             ).order_by('-add_time')
         return []
+
+
+def version(request):
+    resp = {}
+    ver_obj = VersionInfo.objects.all().last()
+    if not ver_obj:
+        resp['msg'] = '获取失败'
+        return JsonResponse(resp, status=400)
+    resp['msg'] = '获取成功'
+    resp['vs'] = ver_obj.version_no
+    resp['link'] = ver_obj.update_link
+    resp['remark'] = ver_obj.remark
+    return JsonResponse(resp)

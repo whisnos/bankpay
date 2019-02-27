@@ -635,10 +635,9 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
-                withdraw_obj.receive_time = datetime.datetime.now()
+                withdraw_obj.receive_time = resp['receive_time']=(time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time())))
                 code = 200
                 resp['msg'].append('状态修改成功')
-                resp['receive_time'] = withdraw_obj.receive_time
                 withdraw_obj.save()
         else:
             code = 403
