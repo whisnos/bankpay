@@ -2,9 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="10b47a2c-edae-42d1-8942-4c8bb4135a64" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/pay.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/pay.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/trade/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/trade/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/trade/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/trade/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/user/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/user/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/user/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/apps/user/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirement.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirement.txt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -25,8 +27,8 @@
       <file leaf-file-name="urls.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pay/urls.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="130">
-              <caret line="26" column="33" selection-start-line="26" selection-start-column="33" selection-end-line="26" selection-end-column="33" />
+            <state relative-caret-position="236">
+              <caret line="28" column="32" lean-forward="true" selection-start-line="28" selection-start-column="32" selection-end-line="28" selection-end-column="32" />
               <folding>
                 <element signature="e#662#694#0" expanded="true" />
               </folding>
@@ -34,13 +36,25 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/apps/trade/models.py">
+      <file leaf-file-name="views.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="608">
-              <caret line="37" column="66" selection-start-line="37" selection-start-column="64" selection-end-line="37" selection-end-column="66" />
+            <state relative-caret-position="265">
+              <caret line="215" column="22" lean-forward="true" selection-start-line="215" selection-start-column="22" selection-end-line="215" selection-end-column="22" />
               <folding>
-                <element signature="e#0#29#0" expanded="true" />
+                <element signature="e#0#58#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="serializers.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/apps/trade/serializers.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-204">
+              <caret line="36" column="6" selection-start-line="36" selection-start-column="6" selection-end-line="36" selection-end-column="6" />
+              <folding>
+                <element signature="e#47#56#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -49,8 +63,8 @@
       <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/apps/user/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="20" column="71" lean-forward="true" selection-start-line="21" selection-start-column="65" selection-end-line="21" selection-end-column="94" />
+            <state relative-caret-position="361">
+              <caret line="19" column="12" selection-start-line="19" selection-start-column="4" selection-end-line="19" selection-end-column="12" />
               <folding>
                 <element signature="e#0#51#0" expanded="true" />
               </folding>
@@ -58,11 +72,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
+      <file leaf-file-name="filters.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/apps/trade/filters.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1482">
-              <caret line="104" column="57" selection-start-line="104" selection-start-column="12" selection-end-line="104" selection-end-column="57" />
+            <state relative-caret-position="69">
+              <caret line="24" column="13" selection-start-line="24" selection-start-column="13" selection-end-line="24" selection-end-column="13" />
+              <folding>
+                <element signature="e#0#52#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -70,17 +87,29 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/apps/user/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="102" column="34" lean-forward="true" selection-start-line="102" selection-start-column="19" selection-end-line="102" selection-end-column="39" />
+            <state relative-caret-position="370">
+              <caret line="148" column="9" selection-start-line="148" selection-start-column="9" selection-end-line="148" selection-end-column="9" />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="requirement.txt" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/requirement.txt">
+      <file leaf-file-name="mixins.py" pinned="false" current-in-tab="false">
+        <entry file="file://D:/Envs/bankpay/Lib/site-packages/rest_framework/mixins.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="361">
-              <caret line="19" column="1" selection-start-line="19" selection-start-column="1" selection-end-line="19" selection-end-column="1" />
+            <state relative-caret-position="382">
+              <caret line="93" column="58" lean-forward="true" selection-start-line="91" selection-start-column="8" selection-end-line="93" selection-end-column="58" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="filters.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/apps/user/filters.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="114">
+              <caret line="6" column="33" selection-start-line="6" selection-start-column="33" selection-end-line="6" selection-end-column="33" />
+              <folding>
+                <element signature="e#0#52#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -88,32 +117,8 @@
       <file leaf-file-name="serializers.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/apps/user/serializers.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="99">
-              <caret line="466" column="6" selection-start-line="466" selection-start-column="6" selection-end-line="466" selection-end-column="6" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="settings.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pay/settings.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2641">
-              <caret line="143" selection-start-line="143" selection-end-line="143" />
-              <folding>
-                <element signature="e#303#318#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="wsgi.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pay/wsgi.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="247">
-              <caret line="15" column="7" selection-start-line="15" selection-start-column="7" selection-end-line="15" selection-end-column="7" />
-              <folding>
-                <element signature="e#219#228#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="197">
+              <caret line="493" column="18" selection-start-line="493" selection-start-column="18" selection-end-line="493" selection-end-column="18" />
             </state>
           </provider>
         </entry>
@@ -130,7 +135,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>hour_money_all</find>
       <find>ProxysSerializer</find>
       <find>hour_total_num</find>
       <find>def create(self, request, *args, **kwargs):</find>
@@ -138,7 +142,6 @@
       <find>cho</find>
       <find>BooleanField</find>
       <find>.objects.get</find>
-      <find>is_active</find>
       <find>CustomModelBackend</find>
       <find>service_rate</find>
       <find>password</find>
@@ -160,6 +163,8 @@
       <find>max_page_size</find>
       <find>Resource</find>
       <find>link</find>
+      <find>is_active</find>
+      <find>入驻企业</find>
     </findStrings>
     <replaceStrings>
       <replace>get_proxyid</replace>
@@ -176,24 +181,24 @@
       <list>
         <option value="$PROJECT_DIR$/utils/SessionM.py" />
         <option value="$PROJECT_DIR$/utils/make_code.py" />
-        <option value="$PROJECT_DIR$/apps/trade/filters.py" />
         <option value="$PROJECT_DIR$/apps/trade/models.py" />
         <option value="$PROJECT_DIR$/templates/pay.html" />
-        <option value="$PROJECT_DIR$/apps/user/filters.py" />
         <option value="$PROJECT_DIR$/utils/permissions.py" />
         <option value="$PROJECT_DIR$/apps/user/forms.py" />
         <option value="$PROJECT_DIR$/t.py" />
         <option value="D:/Envs/pay/Lib/site-packages/rest_framework_jwt/serializers.py" />
         <option value="$PROJECT_DIR$/apps/trade/serializers.py" />
-        <option value="$PROJECT_DIR$/apps/user/serializers.py" />
         <option value="D:/Envs/pay/Lib/site-packages/drf_renderer_xlsx/mixins.py" />
         <option value="D:/Envs/pay/Lib/site-packages/drf_renderer_xlsx/renderers.py" />
         <option value="$PROJECT_DIR$/pay/settings.py" />
         <option value="$PROJECT_DIR$/apps/user/models.py" />
         <option value="$PROJECT_DIR$/pay/urls.py" />
-        <option value="$PROJECT_DIR$/apps/trade/views.py" />
-        <option value="$PROJECT_DIR$/apps/user/views.py" />
         <option value="$PROJECT_DIR$/requirement.txt" />
+        <option value="$PROJECT_DIR$/apps/user/serializers.py" />
+        <option value="$PROJECT_DIR$/apps/trade/filters.py" />
+        <option value="$PROJECT_DIR$/apps/user/filters.py" />
+        <option value="$PROJECT_DIR$/apps/user/views.py" />
+        <option value="$PROJECT_DIR$/apps/trade/views.py" />
       </list>
     </option>
   </component>
@@ -218,6 +223,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -230,11 +236,22 @@
               <item name="bankpay" type="462c0819:PsiDirectoryNode" />
               <item name="apps" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="bankpay" type="b2602c69:ProjectViewProjectNode" />
+              <item name="bankpay" type="462c0819:PsiDirectoryNode" />
+              <item name="apps" type="462c0819:PsiDirectoryNode" />
+              <item name="trade" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="bankpay" type="b2602c69:ProjectViewProjectNode" />
+              <item name="bankpay" type="462c0819:PsiDirectoryNode" />
+              <item name="apps" type="462c0819:PsiDirectoryNode" />
+              <item name="user" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -246,13 +263,14 @@
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\wron\pay\apps" />
+    </key>
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\wron\bankpay\apps\trade" />
       <recent name="D:\wron\pay\apps\user" />
       <recent name="D:\wron\pay\apps\trade" />
       <recent name="D:\wron\pay" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\wron\pay\apps" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -335,6 +353,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
@@ -342,8 +361,8 @@
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" weight="0.3224401" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.38671023" />
-      <window_info anchor="bottom" id="Terminal" order="7" visible="true" weight="0.36056644" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2153518" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="7" visible="true" weight="0.32570806" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.21748401" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="right" id="Database" order="3" />
       <window_info anchor="right" id="SciView" order="3" />
@@ -362,24 +381,24 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info id="Favorites" order="2" side_tool="true" />
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2153518" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.38671023" />
-      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32897604" />
+      <window_info anchor="bottom" id="Python Console" order="10" weight="0.3224401" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.3888889" />
       <window_info anchor="right" id="Database" order="4" />
       <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.5206972" />
       <window_info anchor="bottom" id="Event Log" order="12" side_tool="true" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="right" id="SciView" order="3" />
-      <window_info anchor="bottom" id="Find" order="1" weight="0.32897604" />
-      <window_info anchor="bottom" id="Python Console" order="10" weight="0.3224401" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info id="Favorites" order="2" side_tool="true" />
     </layout-to-restore>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -393,7 +412,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/apps/trade/views.py</url>
-          <line>323</line>
+          <line>328</line>
           <option name="timeStamp" value="14" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -408,22 +427,22 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/apps/trade/views.py</url>
-          <line>578</line>
+          <line>583</line>
           <option name="timeStamp" value="17" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/apps/trade/views.py</url>
-          <line>585</line>
+          <line>590</line>
           <option name="timeStamp" value="18" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/apps/trade/views.py</url>
-          <line>593</line>
+          <line>598</line>
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/apps/trade/views.py</url>
-          <line>612</line>
+          <line>617</line>
           <option name="timeStamp" value="20" />
         </line-breakpoint>
       </breakpoints>
@@ -434,16 +453,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://C:/Users/Python/Python36/Lib/decimal.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$APPLICATION_HOME_DIR$/helpers/typeshed/stdlib/2and3/datetime.pyi">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="247">
-          <caret line="130" column="51" selection-start-line="130" selection-start-column="44" selection-end-line="130" selection-end-column="51" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://D:/Envs/pay/Lib/site-packages/rest_framework/routers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="217">
@@ -517,16 +526,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="114">
           <caret line="6" column="6" selection-start-line="6" selection-start-column="6" selection-end-line="6" selection-end-column="6" />
-          <folding>
-            <element signature="e#0#46#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/apps/user/filters.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="9" column="81" selection-start-line="9" selection-start-column="81" selection-end-line="9" selection-end-column="81" />
         </state>
       </provider>
     </entry>
@@ -628,9 +627,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="475">
           <caret line="47" column="30" lean-forward="true" selection-start-line="47" selection-start-column="30" selection-end-line="47" selection-end-column="30" />
-          <folding>
-            <element signature="e#178#217#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -652,13 +648,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="133">
           <caret line="7" column="62" lean-forward="true" selection-start-line="7" selection-start-column="62" selection-end-line="7" selection-end-column="62" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/apps/trade/filters.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="532">
-          <caret line="29" column="21" lean-forward="true" selection-start-line="29" selection-start-column="21" selection-end-line="29" selection-end-column="21" />
         </state>
       </provider>
     </entry>
@@ -693,16 +682,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/apps/trade/serializers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="114">
-          <caret line="15" column="6" selection-start-line="15" selection-start-column="6" selection-end-line="15" selection-end-column="6" />
-          <folding>
-            <element signature="e#47#56#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pay/settings.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2641">
@@ -732,7 +711,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/apps/trade/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="608">
+        <state relative-caret-position="549">
           <caret line="37" column="66" selection-start-line="37" selection-start-column="64" selection-end-line="37" selection-end-column="66" />
           <folding>
             <element signature="e#0#29#0" expanded="true" />
@@ -740,51 +719,98 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
+    <entry file="file://$PROJECT_DIR$/apps/trade/filters.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1482">
-          <caret line="104" column="57" selection-start-line="104" selection-start-column="12" selection-end-line="104" selection-end-column="57" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/apps/user/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="20" column="71" lean-forward="true" selection-start-line="21" selection-start-column="65" selection-end-line="21" selection-end-column="94" />
+        <state relative-caret-position="69">
+          <caret line="24" column="13" selection-start-line="24" selection-start-column="13" selection-end-line="24" selection-end-column="13" />
           <folding>
-            <element signature="e#0#51#0" expanded="true" />
+            <element signature="e#0#52#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pay/urls.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="130">
-          <caret line="26" column="33" selection-start-line="26" selection-start-column="33" selection-end-line="26" selection-end-column="33" />
-          <folding>
-            <element signature="e#662#694#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/apps/user/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="102" column="34" lean-forward="true" selection-start-line="102" selection-start-column="19" selection-end-line="102" selection-end-column="39" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/apps/user/serializers.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="99">
-          <caret line="466" column="6" selection-start-line="466" selection-start-column="6" selection-end-line="466" selection-end-column="6" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/requirement.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="361">
-          <caret line="19" column="1" selection-start-line="19" selection-start-column="1" selection-end-line="19" selection-end-column="1" />
+          <caret line="19" selection-start-line="19" selection-end-line="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/user/serializers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="197">
+          <caret line="493" column="18" selection-start-line="493" selection-start-column="18" selection-end-line="493" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/trade/serializers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-204">
+          <caret line="36" column="6" selection-start-line="36" selection-start-column="6" selection-end-line="36" selection-end-column="6" />
+          <folding>
+            <element signature="e#47#56#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/user/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="361">
+          <caret line="19" column="12" selection-start-line="19" selection-start-column="4" selection-end-line="19" selection-end-column="12" />
+          <folding>
+            <element signature="e#0#51#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://D:/Envs/bankpay/Lib/site-packages/django_filters/rest_framework/filters.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="9" column="8" selection-start-line="9" selection-start-column="8" selection-end-line="9" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/user/filters.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="6" column="33" selection-start-line="6" selection-start-column="33" selection-end-line="6" selection-end-column="33" />
+          <folding>
+            <element signature="e#0#52#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://D:/Envs/bankpay/Lib/site-packages/rest_framework/mixins.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="382">
+          <caret line="93" column="58" lean-forward="true" selection-start-line="91" selection-start-column="8" selection-end-line="93" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/user/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="370">
+          <caret line="148" column="9" selection-start-line="148" selection-start-column="9" selection-end-line="148" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pay/urls.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="236">
+          <caret line="28" column="32" lean-forward="true" selection-start-line="28" selection-start-column="32" selection-end-line="28" selection-end-column="32" />
+          <folding>
+            <element signature="e#662#694#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="265">
+          <caret line="215" column="22" lean-forward="true" selection-start-line="215" selection-start-column="22" selection-end-line="215" selection-end-column="22" />
+          <folding>
+            <element signature="e#0#58#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

@@ -17,11 +17,12 @@ from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from pay.settings import FONT_DOMAIN, CLOSE_TIME
-from trade.filters import WithDrawFilter, OrdersFilter
+from trade.filters import WithDrawFilter, OrdersFilter, BankFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
     UpdateDeviceSerializer, UpdateBankinfoSerializer
+from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 from utils.make_code import make_short_code
 from utils.permissions import IsOwnerOrReadOnly
@@ -161,8 +162,8 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
-    # filter_backends = (DjangoFilterBackend,)
-    # filter_class = OrdersFilter
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = BankFilter
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -205,12 +206,17 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
         return Response(response_data, status=code, headers=headers)
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        response_data = {'msg': '删除成功', 'id': instance.id}
-        self.perform_destroy(instance)
-        code = 204
-        headers = self.get_success_headers(response_data)
-        return Response(response_data, status=code, headers=headers)
+        if self.request.user.is_superuser or not self.request.user.is_proxy:
+            instance = self.get_object()
+            print(88888888888,instance)
+            response_data = {'msg': '删除成功', 'id': instance.id}
+            self.perform_destroy(instance)
+            code = 204
+            return Response(response_data, status=code)
+        else:
+            code = 403
+            response_data = {'msg': '没有权限'}
+        return Response(response_data, status=code)
     # def update(self, request, *args, **kwargs):
     #     resp = {'msg': []}
     #     serializer = self.get_serializer(data=request.data)
@@ -730,8 +736,8 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
-    # filter_backends = (DjangoFilterBackend,)
-    # filter_class = OrdersFilter
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = DeviceFilter
 
     def get_serializer_class(self):
         if self.action == "create":

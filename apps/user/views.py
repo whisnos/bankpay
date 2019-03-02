@@ -71,7 +71,7 @@ class UserListPagination(PageNumberPagination):
 
 class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.CreateModelMixin,
                          mixins.RetrieveModelMixin,
-                         mixins.UpdateModelMixin):
+                         mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     '''
         total_money: 总成功收款 ---
         total_count_num: 总订单数 - 包括支付中 ---
@@ -95,7 +95,16 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return UserProfile.objects.all().order_by('id')
+            # key = self.request.data.get('key', '')
+            # print('key', self.request.data)
+            # if key == 'AGENT':
+            #     return UserProfile.objects.filter(is_proxy=False).exclude(id=user.id).order_by('id')
+            # elif key == 'USER':
+            #     return UserProfile.objects.filter(is_proxy=True).order_by('id')
+            # else:
+            #     print(222)
+            #     return []
+            return UserProfile.objects.all().order_by('id').exclude(id=user.id)
         return UserProfile.objects.filter(proxy_id=user.id).order_by('id')
 
     def get_serializer_class(self):
@@ -122,6 +131,26 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
     def get_object(self):
         return self.request.user
 
+    def destroy(self, request, *args, **kwargs):
+        resp = {'msg': []}
+        if self.request.user.is_superuser:
+            get_proxyid = self.request.data.get('id')
+            user_queryset = UserProfile.objects.filter(id=get_proxyid)
+            if user_queryset:
+                instance = user_queryset[0]
+                code = 200
+                resp['msg'] = '删除成功'
+                self.perform_destroy(instance)
+                return Response(data=resp, status=code)
+            else:
+                code = 400
+                resp['msg'] = '操作对象不存在'
+                return Response(data=resp, status=code)
+        else:
+            code = 403
+            resp['msg'] = '没有操作权限'
+            return Response(data=resp, status=code)
+
     def update(self, request, *args, **kwargs):
         resp = {'msg': []}
         code = 200
@@ -143,15 +172,43 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             if get_proxyid:
                 user_queryset = UserProfile.objects.filter(id=get_proxyid)
                 if user_queryset:
+                    user = user_queryset[0]
                     if password == password2:
                         if password:
-                            user = user_queryset[0]
                             user.set_password(password)
                             resp['msg'].append('密码修改成功')
-                            user.save()
+
                     else:
-                        code = 404
                         resp['msg'].append('输入密码不一致')
+
+                    if str(is_active):
+                        if is_active == 'true':
+                            is_active = True
+                        if is_active == 'false':
+                            is_active = False
+                        resp['msg'].append('用户状态修改成功')
+                        user.is_active = is_active
+
+                    if service_rate:
+                        resp['msg'].append('费率修改成功')
+                        user.service_rate = float(service_rate)
+                    code = 200
+                    user.save()
+
+                else:
+                    code = 404
+                    resp['msg'].append('操作对象不存在')
+            else:
+                if password == password2:
+                    if password:
+                        print('admin修改密码中..........')
+                        self.request.user.set_password(password)
+                        code = 200
+                        resp['msg'].append('密码修改成功')
+                        self.request.user.save()
+                else:
+                    code = 404
+                    resp['msg'].append('输入密码不一致')
 
         # tuoxie 修改 tuoxie001
         if not self.request.user.is_proxy and not self.request.user.is_superuser:

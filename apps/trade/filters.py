@@ -1,5 +1,6 @@
 from django_filters import rest_framework as filters
 from .models import OrderInfo, WithDrawMoney
+from user.models import BankInfo
 
 
 class OrdersFilter(filters.FilterSet):
@@ -29,3 +30,12 @@ class WithDrawFilter(filters.FilterSet):
     class Meta:
         model = WithDrawMoney
         fields = ['min_money', 'max_money', 'user_msg', 'min_time', 'max_time', 'user_msg','withdraw_no','user_id']
+
+
+class BankFilter(filters.FilterSet):
+    name = filters.CharFilter(field_name="name", lookup_expr='icontains', help_text="名称查询")
+    mobile = filters.CharFilter(field_name="mobile", lookup_expr='icontains',help_text="手机号查询")
+    account_num = filters.CharFilter(field_name="account_num", lookup_expr='icontains',help_text="账号查询")
+    class Meta:
+        model = BankInfo
+        fields = ['name','mobile','account_num']
