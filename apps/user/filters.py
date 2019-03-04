@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from user.models import UserProfile, DeviceName
+from user.models import UserProfile, DeviceName, NoticeInfo
 
 
 class UserFilter(filters.FilterSet):

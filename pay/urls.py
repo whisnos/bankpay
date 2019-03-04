@@ -21,7 +21,7 @@ from rest_framework_jwt.views import obtain_jwt_token
 
 from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset, mobile_pay,QueryOrderView
+    pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -32,6 +32,7 @@ route.register(r'devices', DevicesViewset, base_name='devices')
 route.register(r'verifys', VerifyViewset, base_name='verifys')  # 验证 手机揽收 后的信息
 route.register(r'notices', NoticeInfoViewset, base_name="notices")
 route.register(r'charts', ChartInfoViewset, base_name="charts")
+route.register(r'releases', ReleaseViewset, base_name="releases")
 
 urlpatterns = [
     url(r'^', include(route.urls)),

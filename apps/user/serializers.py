@@ -489,12 +489,16 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def make_userid_list(self,obj):
         userid_list = []
-        if not obj.is_proxy:
+        if not obj.is_proxy and not obj.is_superuser:
             user_qset = UserProfile.objects.filter(proxy_id=obj.id)
             for user in user_qset:
                 userid_list.append(user.id)
         elif obj.is_proxy:
             userid_list.append(obj.id)
+        elif obj.is_superuser:
+            user_qset=UserProfile.objects.filter(is_proxy=True)
+            for user in user_qset:
+                userid_list.append(user.id)
         return  userid_list
 
 
@@ -758,6 +762,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_all_money_success(self, obj):
         userid_list = self.make_userid_list(obj)
+        print('userid_list',userid_list)
         order_queryset = OrderInfo.objects.filter(
             (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list).aggregate(
             total_amount=Sum('total_amount'))

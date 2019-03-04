@@ -11,6 +11,7 @@ from rest_framework import viewsets, mixins, status
 
 # Create your views here.
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -396,13 +397,14 @@ def device_login(request):
 
 
 class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin,
-                        mixins.CreateModelMixin):
+                        mixins.CreateModelMixin,mixins.DestroyModelMixin,mixins.UpdateModelMixin):
     serializer_class = NoticeInfoSerializer
     queryset = NoticeInfo.objects.all().order_by('-add_time')
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     pagination_class = UserListPagination
-
+    filter_backends = (SearchFilter,)
+    search_fields = ('title', "content")
     def get_permissions(self):
         if self.action == 'retrieve':
             return [IsAuthenticated()]
@@ -436,12 +438,16 @@ class ChartInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def make_userid_list(self, obj):
         userid_list = []
-        if not obj.is_proxy:
+        if not obj.is_proxy and not obj.is_superuser:
             user_qset = UserProfile.objects.filter(proxy_id=obj.id)
             for user in user_qset:
                 userid_list.append(user.id)
         elif obj.is_proxy:
             userid_list.append(obj.id)
+        elif obj.is_superuser:
+            user_qset=UserProfile.objects.filter(is_proxy=True)
+            for user in user_qset:
+                userid_list.append(user.id)
         return userid_list
 
     def get_permissions(self):

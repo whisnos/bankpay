@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 # from import_export.admin import ExportMixin
 from rest_framework import mixins, viewsets, filters, views
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -163,8 +164,9 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     pagination_class = OrderListPagination
     '状态,时间范围，金额范围'
 
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (DjangoFilterBackend, SearchFilter)
     filter_class = BankFilter
+    search_fields = ('account_num', 'name', 'mobile')
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -555,8 +557,9 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     serializer_class = WithDrawSerializer
     pagination_class = OrderListPagination
-    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter)
     filter_class = WithDrawFilter
+    search_fields = ('full_name',)
     ordering_fields = ('money', 'real_money')
     renderer_classes = (renderers.JSONRenderer, XLSXRenderer, renderers.BrowsableAPIRenderer)
 
@@ -764,7 +767,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             serializer.is_valid(raise_exception=True)
             get_userid = self.request.data.get('id', '')
             is_active = serializer.validated_data.get('is_active', 'False')
-            user_queryset = UserProfile.objects.filter(id=get_userid,is_proxy=False)
+            user_queryset = UserProfile.objects.filter(id=get_userid, is_proxy=False)
             if user_queryset:
                 instance = serializer.save()
                 instance.user_id = user_queryset[0].id
@@ -969,3 +972,34 @@ class QueryOrderView(views.APIView):
                 resp['pay_time'] = order.pay_time
                 return Response(resp)
         return Response(resp)
+
+
+class ReleaseViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    queryset = OrderInfo.objects.all()
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    serializer_class = VerifyPaySerializer
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        resp = {'msg': '操作成功'}
+        print('user', user)
+        if user.is_superuser:
+            print(3333333333)
+            processed_dict = {}
+            for key, value in self.request.data.items():
+                processed_dict[key] = value
+            money = processed_dict.get('s_time', '')
+            bank_tel = processed_dict.get('bank_tel', '')
+            auth_code = processed_dict.get('auth_code', '')
+            key = processed_dict.get('key', '')
+
+            s_time = processed_dict.get('s_time', '')
+            e_time = processed_dict.get('e_time', '')
+            code = 200
+            return Response(data=resp, status=code)
+        else:
+            resp['msg'] = '设备不存在'
+            code = 400
+            return Response(data=resp, status=code)
+
