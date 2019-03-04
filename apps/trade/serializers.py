@@ -43,6 +43,7 @@ class BankinfoSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(label='手机号')
     devices_name = serializers.SerializerMethodField(read_only=True)
     devices = serializers.CharField(label='所属设备')
+
     # is_active = serializers.CharField(label='是否激活', required=False)
 
     def get_devices_name(self, obj):
@@ -96,7 +97,7 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     # is_active = serializers.CharField(label='是否激活', required=False)
     name = serializers.CharField(label='姓名', required=False)
     mobile = serializers.CharField(label='手机', required=False)
-    devices = serializers.CharField(label='所属设备',required=False)
+    devices = serializers.CharField(label='所属设备', required=False)
 
     def validate_mobile(self, data):
         if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
@@ -144,6 +145,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.SerializerMethodField(read_only=True)
     total_amount = serializers.FloatField(read_only=True)
+
     def get_username(self, obj):
         user_queryset = UserProfile.objects.filter(id=obj.user_id)
         if user_queryset:
@@ -286,7 +288,8 @@ class VerifyPaySerializer(serializers.ModelSerializer):
 
 
 class DeviceSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    # user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.CharField(read_only=True)
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     auth_code = serializers.CharField(label='识别码', read_only=True, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
@@ -295,6 +298,12 @@ class DeviceSerializer(serializers.ModelSerializer):
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
 
+    # username = serializers.SerializerMethodField(read_only=True)
+    # def get_username(self, obj):
+    #     user_queryset = UserProfile.objects.filter(id=obj.user_id)
+    #     if user_queryset:
+    #         return user_queryset[0].username
+    #     return
     class Meta:
         model = DeviceName
         fields = '__all__'
@@ -321,26 +330,32 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('用户名已存在')
         return obj
 
-    def create(self, validated_data):
-        user_up = self.context['request'].user
-        if user_up.is_superuser:
-            device_obj = DeviceName.objects.create(**validated_data)
-            device_obj.auth_code = make_auth_code()
-            device_obj.login_token = make_login_token()
-            device_obj.is_active = validated_data.get('is_active')
-
-            device_obj.save()
-            return device_obj
-        if not user_up.is_proxy:
-            device_obj = DeviceName.objects.create(**validated_data)
-            device_obj.auth_code = make_auth_code()
-            device_obj.login_token = make_login_token()
-            device_obj.is_active = validated_data.get('is_active')
-
-            device_obj.proxy_id = user_up.id
-            device_obj.save()
-            return device_obj
-        return user_up
+    # def create(self, validated_data):
+    #     user_up = self.context['request'].user
+    #     if user_up.is_superuser:
+    #         user_id = validated_data.get('id')
+    #         if user_id:
+    #             user_queryset = UserProfile.objects.filter(id=user_id)
+    #             if user_queryset:
+    #                 device_obj = DeviceName.objects.create(**validated_data)
+    #                 device_obj.auth_code = make_auth_code()
+    #                 device_obj.login_token = make_login_token()
+    #                 device_obj.is_active = validated_data.get('is_active')
+    #                 device_obj.user_id = user_queryset[0].id
+    #                 print('超级管理员创建设备成功')
+    #                 device_obj.save()
+    #         print('超级管理员创建设备失败')
+    #         return user_up
+    #     if not user_up.is_proxy:
+    #         device_obj = DeviceName.objects.create(**validated_data)
+    #         device_obj.auth_code = make_auth_code()
+    #         device_obj.login_token = make_login_token()
+    #         device_obj.is_active = validated_data.get('is_active')
+    #
+    #         device_obj.proxy_id = user_up.id
+    #         device_obj.save()
+    #         return device_obj
+    #     return user_up
 
     class Meta:
         model = DeviceName
@@ -348,6 +363,7 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
 
 
 class UpdateDeviceSerializer(serializers.ModelSerializer):
+    user=serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     auth_code = serializers.CharField(label='识别码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')

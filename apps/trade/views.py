@@ -24,7 +24,8 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
     UpdateDeviceSerializer, UpdateBankinfoSerializer
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
-from utils.make_code import make_short_code
+from user.views import MyThrottle
+from utils.make_code import make_short_code, make_auth_code, make_login_token
 from utils.permissions import IsOwnerOrReadOnly
 
 
@@ -208,7 +209,7 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
     def destroy(self, request, *args, **kwargs):
         if self.request.user.is_superuser or not self.request.user.is_proxy:
             instance = self.get_object()
-            print(88888888888,instance)
+            print(88888888888, instance)
             response_data = {'msg': '删除成功', 'id': instance.id}
             self.perform_destroy(instance)
             code = 204
@@ -641,7 +642,8 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
             print('withdraw_status', withdraw_status)
             if withdraw_status:
                 withdraw_obj.withdraw_status = withdraw_status
-                withdraw_obj.receive_time = resp['receive_time']=(time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time())))
+                withdraw_obj.receive_time = resp['receive_time'] = (
+                    time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
                 code = 200
                 resp['msg'].append('状态修改成功')
                 withdraw_obj.save()
@@ -739,6 +741,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
     filter_backends = (DjangoFilterBackend,)
     filter_class = DeviceFilter
 
+    # throttle_classes = [MyThrottle, ]
     def get_serializer_class(self):
         if self.action == "create":
             return RegisterDeviceSerializer
@@ -753,6 +756,44 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
         if not user.is_proxy:
             return DeviceName.objects.filter(user=user).order_by('-add_time')
         return []
+
+    def create(self, request, *args, **kwargs):
+        resp = {'msg': []}
+        if self.request.user.is_superuser:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            get_userid = self.request.data.get('id', '')
+            is_active = serializer.validated_data.get('is_active', 'False')
+            user_queryset = UserProfile.objects.filter(id=get_userid,is_proxy=False)
+            if user_queryset:
+                instance = serializer.save()
+                instance.user_id = user_queryset[0].id
+                instance.auth_code = make_auth_code()
+                instance.login_token = make_login_token()
+                instance.is_active = is_active
+                instance.save()
+                code = 200
+                resp['msg'] = '创建成功'
+                return Response(resp, status=code)
+            else:
+                code = 400
+                resp['msg'] = 'id不符，创建失败'
+                return Response(resp, status=code)
+        elif not self.request.user.is_proxy:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            is_active = serializer.validated_data.get('is_active', 'False')
+            instance = serializer.save()
+            instance.auth_code = make_auth_code()
+            instance.login_token = make_login_token()
+            instance.is_active = is_active
+            instance.save()
+            code = 200
+            resp['msg'] = '创建成功'
+            return Response(resp, status=code)
+        code = 403
+        resp['msg'] = '没有权限'
+        return Response(resp, status=code)
 
     # def update(self, request, *args, **kwargs):
     #     resp = {'msg': []}
@@ -880,6 +921,8 @@ class ExportViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
         code = 403
         resp['msg'] = '无操作权限'
         return Response(data=resp, status=code)
+
+
 # class Echo(object):
 #     """An object that implements just the write method of the file-like
 #     interface.

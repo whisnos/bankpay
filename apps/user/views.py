@@ -29,6 +29,7 @@ from utils.permissions import IsOwnerOrReadOnly
 User = get_user_model()
 
 
+
 def log_in(func):
     def wrapper(request, *args, **kwargs):
         print('request.data', request.POST.get("type"))
@@ -68,6 +69,41 @@ class UserListPagination(PageNumberPagination):
     page_query_param = 'page'
     max_page_size = 100
 
+VISIT_RECORD = {}
+# 自定义限制
+class MyThrottle(object):
+
+    def __init__(self):
+        self.history = None
+
+    def allow_request(self, request, view):
+        """
+        自定义频率限制60秒内只能访问三次
+        """
+        # 获取用户IP
+        ip = request.META.get("REMOTE_ADDR")
+        print('获取访问者ip....',ip)
+        timestamp = time.time()
+        if ip not in VISIT_RECORD:
+            VISIT_RECORD[ip] = [timestamp, ]
+            return True
+        history = VISIT_RECORD[ip]
+        self.history = history
+        history.insert(0, timestamp)
+        while history and history[-1] < timestamp - 60:
+            history.pop()
+        if len(history) > 3:
+            return False
+        else:
+            return True
+
+    def wait(self):
+        """
+        限制时间还剩多少
+        """
+        timestamp = time.time()
+        return 60 - (timestamp - self.history[-1])
+
 
 class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.CreateModelMixin,
                          mixins.RetrieveModelMixin,
@@ -91,7 +127,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
     filter_backends = (DjangoFilterBackend,)
     filter_class = UserFilter
-
+    # throttle_classes = [MyThrottle, ]
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
@@ -442,3 +478,4 @@ def version(request):
     resp['link'] = ver_obj.update_link
     resp['remark'] = ver_obj.remark
     return JsonResponse(resp)
+
