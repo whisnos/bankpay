@@ -624,7 +624,7 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if user_up.is_proxy:
-            order = self.perform_create(serializer)
+            self.perform_create(serializer)
 
             response_data = serializer.data
             headers = self.get_success_headers(response_data)

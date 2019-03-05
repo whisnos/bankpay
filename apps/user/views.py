@@ -121,11 +121,10 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         today_count_num: 今日总订单数 所有 包括成功与否 ---
         today_count_success_num: 今日订单数(仅含成功订单)
     '''
-    queryset = UserProfile.objects.all()
-    serializer_class = RegisterUserSerializer
+    # queryset = UserProfile.objects.all()
+    # serializer_class = RegisterUserSerializer
     pagination_class = UserListPagination
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    # JWT认证
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
 
     filter_backends = (DjangoFilterBackend,)
@@ -135,25 +134,16 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            # key = self.request.data.get('key', '')
-            # print('key', self.request.data)
-            # if key == 'AGENT':
-            #     return UserProfile.objects.filter(is_proxy=False).exclude(id=user.id).order_by('id')
-            # elif key == 'USER':
-            #     return UserProfile.objects.filter(is_proxy=True).order_by('id')
-            # else:
-            #     print(222)
-            #     return []
             return UserProfile.objects.all().order_by('id').exclude(id=user.id)
         return UserProfile.objects.filter(proxy_id=user.id).order_by('id')
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return UserDetailSerializer
-        elif self.action == "create":
+        # if self.action == "retrieve":
+        #     return UserDetailSerializer
+        if self.action == "create":
             return RegisterUserSerializer
-        elif self.action == "list":
-            return UserDetailSerializer
+        # elif self.action == "list":
+        #     return UserDetailSerializer
         elif self.action == "update":
             return UpdateUserSerializer
         return UserDetailSerializer
@@ -202,7 +192,6 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         get_proxyid = self.request.data.get('id', '')
         add_money = self.request.data.get('add_money', '')
         minus_money = self.request.data.get('minus_money', '')
-        # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
         original_safe_code = self.request.data.get('original_safe_code', '')
@@ -344,7 +333,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # 修改tuoxie本身数据
         if not get_proxyid and not self.request.user.is_proxy:
             qq = self.request.data.get('qq', '')
-            user = self.get_object()
+            user = self.request.user
 
             if add_money:
                 user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
