@@ -21,7 +21,7 @@ class UserProfile(AbstractUser):
     service_rate = models.FloatField(default=0.02, verbose_name='提现费率')
     level = models.IntegerField(default=3, verbose_name='用户等级')  # 1 超级用户 2 tuoxie 3 tuoxie001
     login_token = models.CharField(max_length=8, null=True, blank=True, verbose_name='副token')
-
+    safe_code = models.CharField(max_length=32,default='e10adc3949ba59abbe56e057f20f883e',verbose_name='安全码')
     class Meta:
         verbose_name = '用户管理'
         verbose_name_plural = verbose_name

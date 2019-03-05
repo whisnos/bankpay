@@ -9,7 +9,7 @@ from decimal import Decimal
 # Create your views here.
 from django_filters.rest_framework import DjangoFilterBackend
 # from import_export.admin import ExportMixin
-from rest_framework import mixins, viewsets, filters, views
+from rest_framework import mixins, viewsets, filters, views, serializers
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
@@ -22,11 +22,11 @@ from trade.filters import WithDrawFilter, OrdersFilter, BankFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
-    UpdateDeviceSerializer, UpdateBankinfoSerializer
+    UpdateDeviceSerializer, UpdateBankinfoSerializer, ReleaseSerializer
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 from user.views import MyThrottle
-from utils.make_code import make_short_code, make_auth_code, make_login_token
+from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5
 from utils.permissions import IsOwnerOrReadOnly
 
 
@@ -974,13 +974,19 @@ class QueryOrderView(views.APIView):
         return Response(resp)
 
 
-class ReleaseViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.ListModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    queryset = OrderInfo.objects.all()
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    serializer_class = VerifyPaySerializer
+    serializer_class = ReleaseSerializer
+    pagination_class = OrderListPagination
 
-    def update(self, request, *args, **kwargs):
+    def get_permissions(self):
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        return []
+
+    def destroy(self, request, *args, **kwargs):
         user = self.request.user
         resp = {'msg': '操作成功'}
         print('user', user)
@@ -989,17 +995,39 @@ class ReleaseViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             processed_dict = {}
             for key, value in self.request.data.items():
                 processed_dict[key] = value
-            money = processed_dict.get('s_time', '')
-            bank_tel = processed_dict.get('bank_tel', '')
-            auth_code = processed_dict.get('auth_code', '')
-            key = processed_dict.get('key', '')
 
-            s_time = processed_dict.get('s_time', '')
-            e_time = processed_dict.get('e_time', '')
-            code = 200
-            return Response(data=resp, status=code)
+            print(888888888888888888, processed_dict.get('s_time'), processed_dict.get('e_time'))
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            s_time = serializer.validated_data.get('s_time', '')
+            e_time = serializer.validated_data.get('e_time', '')
+            dele_type = serializer.validated_data.get('dele_type', '')
+            safe_code = serializer.validated_data.get('safe_code', '')
+            print('safe_code',safe_code)
+            new_key = make_md5(safe_code)
+            print('5555', s_time, e_time, dele_type)
+            print('6666',new_key,user.safe_code)
+            if new_key == user.safe_code:
+                if dele_type == 'order':
+                    order_queryset = OrderInfo.objects.filter(add_time__range=(s_time, e_time))
+                elif dele_type == 'money':
+                    order_queryset = WithDrawMoney.objects.filter(add_time__range=(s_time, e_time))
+                else:
+                    code = 400
+                    resp['msg'] = '类型错误'
+                    return Response(data=resp, status=code)
+                if order_queryset:
+                    for obj in order_queryset:
+                        print(obj.id)
+                        obj.delete()
+                code = 200
+                return Response(data=resp, status=code)
+            else:
+                code = 400
+                resp['msg'] = '操作密码错误'
+                return Response(data=resp, status=code)
         else:
-            resp['msg'] = '设备不存在'
-            code = 400
+            code = 403
+            resp['msg'] = '没有权限'
             return Response(data=resp, status=code)
-

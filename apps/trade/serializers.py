@@ -402,3 +402,43 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceName
         fields = '__all__'
+
+
+class ReleaseSerializer(serializers.ModelSerializer):
+    pay_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M',read_only=True)
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M',read_only=True)
+    username = serializers.SerializerMethodField(read_only=True)
+    user_id = serializers.SerializerMethodField(read_only=True)
+    total_amount = serializers.FloatField(read_only=True)
+    s_time = serializers.DateTimeField(write_only=True)
+    e_time = serializers.DateTimeField(write_only=True)
+    dele_type = serializers.CharField(write_only=True)
+    safe_code = serializers.CharField(write_only=True)
+    def get_username(self, obj):
+        user_queryset = UserProfile.objects.filter(id=obj.user_id)
+        if user_queryset:
+            return user_queryset[0].username
+        return
+
+    def get_user_id(self, obj):
+        return str(obj.user_id)
+
+    def validate(self, attrs):
+        print(11111111111,attrs)
+        s_time=attrs.get('s_time')
+        e_time=attrs.get('e_time')
+        dele_type=attrs.get('dele_type')
+        if s_time:
+            if not re.match(r'(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2})', str(s_time)):
+                raise serializers.ValidationError('时间格式错误，请重新输入')
+        if e_time:
+            if not re.match(r'(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2})', str(e_time)):
+                raise serializers.ValidationError('时间格式错误，请重新输入')
+        if str(dele_type) not in ['order', 'money']:
+            raise serializers.ValidationError('传值错误')
+        return attrs
+
+    class Meta:
+        model = OrderInfo
+        fields = ['id', 'user_id', 'username', 'total_amount', 'pay_time', 'add_time',
+                  'order_id','s_time','e_time','dele_type','safe_code']

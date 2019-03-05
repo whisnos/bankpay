@@ -24,11 +24,10 @@ from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo
 from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer
 from django.contrib.auth import get_user_model
 
-from utils.make_code import make_uuid_code, make_auth_code
+from utils.make_code import make_uuid_code, make_auth_code, make_md5
 from utils.permissions import IsOwnerOrReadOnly
 
 User = get_user_model()
-
 
 
 def log_in(func):
@@ -70,7 +69,10 @@ class UserListPagination(PageNumberPagination):
     page_query_param = 'page'
     max_page_size = 100
 
+
 VISIT_RECORD = {}
+
+
 # 自定义限制
 class MyThrottle(object):
 
@@ -83,7 +85,7 @@ class MyThrottle(object):
         """
         # 获取用户IP
         ip = request.META.get("REMOTE_ADDR")
-        print('获取访问者ip....',ip)
+        print('获取访问者ip....', ip)
         timestamp = time.time()
         if ip not in VISIT_RECORD:
             VISIT_RECORD[ip] = [timestamp, ]
@@ -128,6 +130,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
     filter_backends = (DjangoFilterBackend,)
     filter_class = UserFilter
+
     # throttle_classes = [MyThrottle, ]
     def get_queryset(self):
         user = self.request.user
@@ -202,7 +205,11 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         # uid = self.request.data.get('uid', '')
         auth_code = self.request.data.get('auth_code', '')
         is_active = self.request.data.get('is_active', '')
-        print('auth_code', auth_code)
+        original_safe_code = self.request.data.get('original_safe_code', '')
+        safe_code = self.request.data.get('safe_code', '')
+        safe_code2 = self.request.data.get('safe_code2', '')
+
+        print('self.request.user', self.request.user)
         service_rate = self.request.data.get('service_rate', '')
 
         if self.request.user.is_superuser:
@@ -217,6 +224,15 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
                     else:
                         resp['msg'].append('输入密码不一致')
+
+                    if safe_code == safe_code2:
+                        if password:
+                            print('admin修改用户操作密码中..........')
+                            user.safe_code = make_md5(safe_code)
+                            resp['msg'].append('操作密码修改成功')
+                    else:
+                        code = 404
+                        resp['msg'].append('操作输入密码不一致')
 
                     if str(is_active):
                         if is_active == 'true':
@@ -246,6 +262,25 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                 else:
                     code = 404
                     resp['msg'].append('输入密码不一致')
+
+                if original_safe_code:
+                    if make_md5(original_safe_code) == self.request.user.safe_code:
+                        if safe_code == safe_code2:
+                            if safe_code:
+                                print('admin修改操作密码中..........')
+                                safe_code = make_md5(safe_code)
+                                self.request.user.safe_code = safe_code
+                                code = 200
+                                resp['msg'].append('操作密码修改成功')
+                                self.request.user.save()
+                        else:
+                            code = 404
+                            resp['msg'].append('操作密码输入不一致')
+
+                    else:
+                        code = 404
+                        resp['msg'].append('操作密码错误')
+
 
         # tuoxie 修改 tuoxie001
         if not self.request.user.is_proxy and not self.request.user.is_superuser:
@@ -291,6 +326,16 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     if service_rate:
                         resp['msg'].append('费率修改成功')
                         user.service_rate = float(service_rate)
+
+                    if safe_code == safe_code2:
+                        if password:
+                            print('代理修改商户操作密码中..........')
+                            self.request.user.safe_code = make_md5(safe_code)
+                            resp['msg'].append('操作密码修改成功')
+                    else:
+                        code = 404
+                        resp['msg'].append('操作输入密码不一致')
+                    code = 200
                     user.save()
                 else:
                     code = 404
@@ -339,7 +384,6 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         if self.request.user.is_proxy:
             user = self.get_object()
             if password:
-
                 if password == password2:
                     user.set_password(password)
                     resp['msg'].append('密码修改成功')
@@ -359,6 +403,23 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             if service_rate:
                 resp['msg'].append('费率修改失败')
 
+            if original_safe_code:
+                if make_md5(original_safe_code) == self.request.user.safe_code:
+                    if safe_code == safe_code2:
+                        if safe_code:
+                            print('admin修改操作密码中..........')
+                            safe_code = make_md5(safe_code)
+                            self.request.user.safe_code = safe_code
+
+                            resp['msg'].append('操作密码修改成功')
+                    else:
+                        code = 404
+                        resp['msg'].append('操作密码输入不一致')
+
+                else:
+                    code = 404
+                    resp['msg'].append('操作密码错误')
+            code = 200
             user.save()
         return Response(data=resp, status=code)
 
@@ -397,7 +458,7 @@ def device_login(request):
 
 
 class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin,
-                        mixins.CreateModelMixin,mixins.DestroyModelMixin,mixins.UpdateModelMixin):
+                        mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.UpdateModelMixin):
     serializer_class = NoticeInfoSerializer
     queryset = NoticeInfo.objects.all().order_by('-add_time')
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
@@ -405,6 +466,7 @@ class NoticeInfoViewset(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixi
     pagination_class = UserListPagination
     filter_backends = (SearchFilter,)
     search_fields = ('title', "content")
+
     def get_permissions(self):
         if self.action == 'retrieve':
             return [IsAuthenticated()]
@@ -445,7 +507,7 @@ class ChartInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
         elif obj.is_proxy:
             userid_list.append(obj.id)
         elif obj.is_superuser:
-            user_qset=UserProfile.objects.filter(is_proxy=True)
+            user_qset = UserProfile.objects.filter(is_proxy=True)
             for user in user_qset:
                 userid_list.append(user.id)
         return userid_list
@@ -484,4 +546,3 @@ def version(request):
     resp['link'] = ver_obj.update_link
     resp['remark'] = ver_obj.remark
     return JsonResponse(resp)
-

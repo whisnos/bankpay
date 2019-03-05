@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 import random
 
@@ -52,3 +53,9 @@ def generate_order_no(userid):
     order_sn = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                     userid=userid, randstr=short_code)
     return order_sn
+
+def make_md5(new_temp):
+    m = hashlib.md5()
+    m.update(new_temp.encode('utf-8'))
+    my_key = m.hexdigest()
+    return my_key
