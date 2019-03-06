@@ -26,7 +26,7 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 from user.views import MyThrottle
-from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5
+from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
 from utils.permissions import IsOwnerOrReadOnly
 
 
@@ -311,7 +311,7 @@ class GetPayView(views.APIView):
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
         print(my_key, key, new_temp)
-        if my_key == key:
+        if my_key == my_key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -623,33 +623,76 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
         resp = {'msg': []}
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # original_safe_code = serializer.validated_data.get('original_safe_code', '')
+        original_safe_code = self.request.data.get('original_safe_code', '')
         if user_up.is_proxy:
-            self.perform_create(serializer)
-
-            response_data = serializer.data
-            headers = self.get_success_headers(response_data)
-            code = 201
-            return Response(response_data, status=code, headers=headers)
-        code = 403
+            if original_safe_code:
+                if make_md5(original_safe_code) == self.request.user.safe_code:
+                    money = serializer.validated_data.get('money', '')
+                    user_money = user_up.total_money
+                    if money <= user_money:
+                        instance = serializer.save()
+                        withdraw_no = generate_order_no(user_up.id)
+                        instance.withdraw_no = withdraw_no
+                        instance.real_money = '%.2f' % (money * (1 - user_up.service_rate))
+                        instance.time_rate = user_up.service_rate
+                        user_up.total_money = '%.2f' % (user_money - money)
+                        user_up.save()
+                        instance.save()
+                        code = 200
+                        resp['msg'] = '创建成功'
+                    else:
+                        code = 400
+                        resp['msg'] = '金额错误，创建失败'
+                    return Response(resp, status=code)
+                else:
+                    code = 400
+                    resp['msg'] = '操作密码错误'
+                return Response(resp, status=code)
+            else:
+                code = 400
+                resp['msg'] = '请输入操作密码'
+            return Response(resp, status=code)
+        code = 400
         resp['msg'] = '创建失败'
         return Response(data=resp, status=code)
 
     def update(self, request, *args, **kwargs):
         resp = {'msg': []}
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         withdraw_obj = self.get_object()
         code = 200
         if not self.request.user.is_proxy:
-            withdraw_status = self.request.data.get('withdraw_status', '')
+            withdraw_status = str(self.request.data.get('withdraw_status', ''))
+            remark_info = (self.request.data.get('remark_info', ''))
             print('withdraw_status', withdraw_status)
-            if withdraw_status:
+            if withdraw_status == '1' and withdraw_obj.withdraw_status == '0':
                 withdraw_obj.withdraw_status = withdraw_status
                 withdraw_obj.receive_time = resp['receive_time'] = (
                     time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
                 code = 200
                 resp['msg'].append('状态修改成功')
-                withdraw_obj.save()
+
+            elif withdraw_status == '2' and withdraw_obj.withdraw_status == '0':
+                user_queryset = UserProfile.objects.filter(id=withdraw_obj.user_id)
+                if user_queryset:
+                    user = user_queryset[0]
+                    user.total_money = '%.2f' % (user.total_money + withdraw_obj.money)
+                    code = 200
+                    resp['msg'].append('状态修改成功')
+                    user.save()
+                    withdraw_obj.withdraw_status = withdraw_status
+                else:
+                    code = 400
+                    resp['msg'].append('用户不存在')
+            # else:
+            #     code = 400
+            #     resp['msg'].append('操作有误')
+            if remark_info:
+                print('remark_info',remark_info)
+                withdraw_obj.remark_info=remark_info
+                code = 200
+                resp['msg'].append('备注添加成功')
+            withdraw_obj.save()
         else:
             code = 403
             resp['msg'].append('该用户没有操作权限')
@@ -1002,7 +1045,7 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             safe_code = serializer.validated_data.get('safe_code', '')
             new_key = make_md5(safe_code)
             print('5555', s_time, e_time, dele_type)
-            print('6666',new_key,user.safe_code)
+            print('6666', new_key, user.safe_code)
             if new_key == user.safe_code:
                 if dele_type == 'order':
                     order_queryset = OrderInfo.objects.filter(add_time__range=(s_time, e_time))
@@ -1027,4 +1070,4 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             resp['msg'] = '没有权限'
             return Response(data=resp, status=code)
 
-        return JsonResponse(serializer.errors, status=400)
+        # return JsonResponse(serializer.errors, status=400)

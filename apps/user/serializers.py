@@ -762,7 +762,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_all_money_success(self, obj):
         userid_list = self.make_userid_list(obj)
-        print('userid_list',userid_list)
+        # print('userid_list',userid_list)
         order_queryset = OrderInfo.objects.filter(
             (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list).aggregate(
             total_amount=Sum('total_amount'))

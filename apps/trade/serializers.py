@@ -210,8 +210,6 @@ class WithDrawSerializer(serializers.ModelSerializer):
                   'user_msg',
                   'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money']
 
-        # fields = '__all__'
-
 
 class WithDrawCreateSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -227,7 +225,7 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         user = self.context['request'].user
         user_money = user.total_money
-        if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
+        if not re.match(r'(^[1-4]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^[0-9]\.[0-9]([0-9])?$)|(^[1-5]([0-9]{1,3})?(\.[0-9]{1,2})?$)',
                         str(attrs['money'])):
             raise serializers.ValidationError('金额输入异常')
         if attrs['money'] > user_money or attrs['money'] == 0:
@@ -235,21 +233,22 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def create(self, validated_data):
-        user = self.context['request'].user
-        user_money = user.total_money
-        money = validated_data['money']
-        if money <= user_money:
-            validated_data['real_money'] = '%.2f' % (money * (1 - user.service_rate))
-            with_model = WithDrawMoney.objects.create(**validated_data)
-            withdraw_no = generate_order_no(user.id)
-            with_model.withdraw_no = withdraw_no
-            with_model.freeze_money = money
-            with_model.time_rate = user.service_rate
-            user.total_money = '%.2f' % (user_money - money)
-            user.save()
-            with_model.save()
-            return with_model
+    # def create(self, validated_data):
+    #     user = self.context['request'].user
+    #     user_money = user.total_money
+    #     money = validated_data['money']
+    #     print('456')
+    #     if money <= user_money:
+    #         validated_data['real_money'] = '%.2f' % (money * (1 - user.service_rate))
+    #         with_model = WithDrawMoney.objects.create(**validated_data)
+    #         withdraw_no = generate_order_no(user.id)
+    #         with_model.withdraw_no = withdraw_no
+    #         # with_model.freeze_money = money
+    #         with_model.time_rate = user.service_rate
+    #         user.total_money = '%.2f' % (user_money - money)
+    #         user.save()
+    #         with_model.save()
+    #         return with_model
 
     class Meta:
         model = WithDrawMoney

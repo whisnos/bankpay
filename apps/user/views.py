@@ -210,7 +210,6 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         if password:
                             user.set_password(password)
                             resp['msg'].append('密码修改成功')
-
                     else:
                         resp['msg'].append('输入密码不一致')
 
@@ -220,7 +219,6 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             user.safe_code = make_md5(safe_code)
                             resp['msg'].append('操作密码修改成功')
                     else:
-                        code = 404
                         resp['msg'].append('操作输入密码不一致')
 
                     if str(is_active):
@@ -269,6 +267,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     else:
                         code = 404
                         resp['msg'].append('操作密码错误')
+                else:
+                    code = 404
+                    resp['msg'].append('操作密码错误1')
 
 
         # tuoxie 修改 tuoxie001
@@ -408,7 +409,6 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                 else:
                     code = 404
                     resp['msg'].append('操作密码错误')
-            code = 200
             user.save()
         return Response(data=resp, status=code)
 
