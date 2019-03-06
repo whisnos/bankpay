@@ -989,14 +989,10 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
     def destroy(self, request, *args, **kwargs):
         user = self.request.user
         resp = {'msg': '操作成功'}
-        print('user', user)
         if user.is_superuser:
-            print(3333333333)
             processed_dict = {}
             for key, value in self.request.data.items():
                 processed_dict[key] = value
-
-            print(888888888888888888, processed_dict.get('s_time'), processed_dict.get('e_time'))
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
@@ -1004,7 +1000,6 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             e_time = serializer.validated_data.get('e_time', '')
             dele_type = serializer.validated_data.get('dele_type', '')
             safe_code = serializer.validated_data.get('safe_code', '')
-            print('safe_code',safe_code)
             new_key = make_md5(safe_code)
             print('5555', s_time, e_time, dele_type)
             print('6666',new_key,user.safe_code)
@@ -1020,7 +1015,7 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
                 if order_queryset:
                     for obj in order_queryset:
                         print(obj.id)
-                        obj.delete()
+                        # obj.delete()
                 code = 200
                 return Response(data=resp, status=code)
             else:
@@ -1031,3 +1026,5 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             code = 403
             resp['msg'] = '没有权限'
             return Response(data=resp, status=code)
+
+        return JsonResponse(serializer.errors, status=400)
