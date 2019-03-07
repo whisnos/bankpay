@@ -37,13 +37,13 @@ route.register(r'releases', ReleaseViewset, base_name="releases")
 urlpatterns = [
     url(r'^', include(route.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^login/', obtain_jwt_token),
-    url(r'^get_pay/', GetPayView.as_view(), name="get_pay"),
-    url(r'^verify_pay/', VerifyView.as_view(), name="verify_pay"),
-    url(r'^pay/', pay, name="pay"),
-    url(r'^mobile_pay/', mobile_pay, name="mobile_pay"),
+    url(r'^login/$', obtain_jwt_token),
+    url(r'^get_pay/$', GetPayView.as_view(), name="get_pay"),
+    url(r'^verify_pay/$', VerifyView.as_view(), name="verify_pay"),
+    url(r'^pay/$', pay, name="pay"),
+    url(r'^mobile_pay/$', mobile_pay, name="mobile_pay"),
     url(r'^device_login/$', device_login, name='device_login'),
     url(r'^version/$', version, name='version'),
     # 查询订单接口
-    url(r'^query_order/', QueryOrderView.as_view(), name="query_order"),
+    url(r'^query_order/$', QueryOrderView.as_view(), name="query_order"),
 ]

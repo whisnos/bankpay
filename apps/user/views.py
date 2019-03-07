@@ -197,10 +197,10 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         original_safe_code = self.request.data.get('original_safe_code', '')
         safe_code = self.request.data.get('safe_code', '')
         safe_code2 = self.request.data.get('safe_code2', '')
-
-        print('self.request.user', self.request.user)
+        proxy_id = self.request.data.get('proxy_id', '')
         service_rate = self.request.data.get('service_rate', '')
 
+        print('self.request.user', self.request.user)
         if self.request.user.is_superuser:
             if get_proxyid:
                 user_queryset = UserProfile.objects.filter(id=get_proxyid)
@@ -232,6 +232,14 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     if service_rate:
                         resp['msg'].append('费率修改成功')
                         user.service_rate = float(service_rate)
+                    if proxy_id:
+                        user_proxy=UserProfile.objects.filter(id=proxy_id,is_proxy=False,is_active=True)
+                        if user_proxy:
+                            user.proxy_id=proxy_id
+                            resp['msg'].append('商户调整成功')
+                        else:
+                            resp['msg'].append('调整失败，代理不存在')
+
                     code = 200
                     user.save()
 

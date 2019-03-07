@@ -203,12 +203,13 @@ class WithDrawSerializer(serializers.ModelSerializer):
     time_rate = serializers.FloatField(read_only=True)
     real_money = serializers.FloatField(read_only=True)
     open_bank = serializers.CharField(read_only=True)
+    remark_info = serializers.CharField(read_only=True)
 
     class Meta:
         model = WithDrawMoney
         fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'open_bank',
                   'user_msg',
-                  'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money']
+                  'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money','remark_info']
 
 
 class WithDrawCreateSerializer(serializers.ModelSerializer):

@@ -120,6 +120,13 @@ class ProxysSerializer(serializers.ModelSerializer):
     # 今日收款金额 含 支付中 成功 关闭
     today_receive_all = serializers.SerializerMethodField(read_only=True)
     service_rate = serializers.CharField(read_only=True)
+    proxy_name = serializers.SerializerMethodField(label='所属代理', read_only=True, help_text='所属代理')
+
+    def get_proxy_name(self, obj):
+        user_query = UserProfile.objects.filter(id=obj.proxy_id)
+        if user_query:
+            return user_query[0].username
+        return obj.username
 
     # def update(self, instance, validated_data):
 
@@ -443,7 +450,8 @@ class ProxysSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'label', 'value', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy',
+        fields = ['id', 'username', 'proxy_name', 'label', 'value', 'uid', 'auth_code', 'mobile', 'notify_url',
+                  'is_proxy',
                   'is_active', 'service_rate', 'add_time', 'total_money',
                   'total_count_num',
                   'total_count_success_num', 'total_count_fail_num', 'total_count_paying_num', 'today_receive_all',
@@ -486,8 +494,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     is_active = serializers.BooleanField(label='是否激活', required=False)
     service_rate = serializers.CharField(read_only=True)
+    proxy_name = serializers.SerializerMethodField(label='所属代理', read_only=True, help_text='所属代理')
 
-    def make_userid_list(self,obj):
+    def get_proxy_name(self, obj):
+        user_query = UserProfile.objects.filter(id=obj.proxy_id)
+        if user_query:
+            return user_query[0].username
+        return obj.username
+
+    def make_userid_list(self, obj):
         userid_list = []
         if not obj.is_proxy and not obj.is_superuser:
             user_qset = UserProfile.objects.filter(proxy_id=obj.id)
@@ -496,11 +511,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
         elif obj.is_proxy:
             userid_list.append(obj.id)
         elif obj.is_superuser:
-            user_qset=UserProfile.objects.filter(is_proxy=True)
+            user_qset = UserProfile.objects.filter(is_proxy=True)
             for user in user_qset:
                 userid_list.append(user.id)
-        return  userid_list
-
+        return userid_list
 
     def validate_service_rate(self, data):
         if not re.match(r'(^0\.(0[1-9]|[1-9]{1,2})$)', str(data)):
@@ -574,7 +588,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_today_total_num(self, obj):
-        userid_list=self.make_userid_list(obj)
+        userid_list = self.make_userid_list(obj)
         return OrderInfo.objects.filter(user_id__in=userid_list,
                                         add_time__gte=self.today_time).count()
 
@@ -583,7 +597,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_today_success_num(self, obj):
         userid_list = self.make_userid_list(obj)
-        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list,
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                        user_id__in=userid_list,
                                         add_time__gte=self.today_time).count()
 
     # 今天 成功率
@@ -720,13 +735,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
             return '0'
         return order_queryset.get('total_amount', 0)
 
-
     # 全部
     # 全部 datetime.datetime.now()-datetime.timedelta(hours=1)
     all_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_all_total_num(self, obj):
-        userid_list=self.make_userid_list(obj)
+        userid_list = self.make_userid_list(obj)
         return OrderInfo.objects.filter(user_id__in=userid_list).count()
 
     # 全部 成功数
@@ -734,7 +748,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_all_success_num(self, obj):
         userid_list = self.make_userid_list(obj)
-        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list).count()
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                        user_id__in=userid_list).count()
 
     # 全部 成功率
     all_rate = serializers.SerializerMethodField(read_only=True)
@@ -772,7 +787,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy', 'is_active',
+        fields = ['id', 'username', 'proxy_name', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy',
+                  'is_active',
                   'service_rate', 'add_time', 'all_total_num', 'all_success_num', 'all_rate', 'all_money_all',
                   'all_money_success',
                   'proxys', 'banks', 'minus_money', 'add_money', 'hour_total_num',
@@ -780,7 +796,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
                   'today_success_num', 'today_rate', 'today_money_all', 'today_money_success', 'yesterday_total_num',
                   'yesterday_success_num', 'yesterday_rate', 'yesterday_money_all', 'yesterday_money_success',
                   'month_total_num',
-                  'month_success_num', 'month_rate', 'month_money_all', 'month_money_success', ]
+                  'month_success_num', 'month_rate', 'month_money_all', 'month_money_success']
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
@@ -793,15 +809,14 @@ class UpdateUserSerializer(serializers.ModelSerializer):
     total_money = serializers.CharField(read_only=True)
     proxys = ProxysSerializer(many=True, read_only=True)
     banks = BankInfoSerializer(many=True, read_only=True)
-
     add_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='加款', write_only=True,
                                          required=False)
     minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
                                            required=False)
-
     is_active = serializers.BooleanField(label='是否激活', required=False)
     password = serializers.CharField(label='密码', required=False, allow_blank=False, min_length=6,
                                      style={'input_type': 'password'}, help_text='密码')
+    proxy_id = serializers.IntegerField(required=False)
 
     def validate(self, attrs):
         if attrs.get('service_rate'):
@@ -811,7 +826,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             if not re.match(r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
                             str(attrs.get('add_money'))) or attrs.get('add_money') == 0:
                 raise serializers.ValidationError('金额异常，请重新输入')
-        if str(attrs.get('is_active')) not in ['True', 'False','None']:
+        if str(attrs.get('is_active')) not in ['True', 'False', 'None']:
             print(555555)
             raise serializers.ValidationError('传值错误')
         return attrs
@@ -826,12 +841,15 @@ class UpdateUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = "__all__"
+
+
 class NoticeInfoSerializer(serializers.ModelSerializer):
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
 
     class Meta:
         model = NoticeInfo
         fields = '__all__'
+
 
 class OrderListSerializer(serializers.ModelSerializer):
     pay_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M')
