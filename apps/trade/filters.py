@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 from .models import OrderInfo, WithDrawMoney
-from user.models import BankInfo
+from user.models import BankInfo, OperateLog
 
 
 class OrdersFilter(filters.FilterSet):
@@ -39,3 +39,9 @@ class BankFilter(filters.FilterSet):
     class Meta:
         model = BankInfo
         fields = ['name','mobile','account_num']
+
+class LogFilter(filters.FilterSet):
+    content = filters.CharFilter(field_name="content", lookup_expr='icontains', help_text="名称查询")
+    class Meta:
+        model = OperateLog
+        fields = ['content']

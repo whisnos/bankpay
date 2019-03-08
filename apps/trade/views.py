@@ -27,7 +27,7 @@ from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 from user.views import MyThrottle
 from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
-from utils.permissions import IsOwnerOrReadOnly
+from utils.permissions import IsOwnerOrReadOnly, MakeLogs
 
 
 class OrderListPagination(PageNumberPagination):
@@ -362,6 +362,12 @@ class GetPayView(views.APIView):
             order.pay_url = 'https://www.alipay.com/?appId=09999988&actionType=toCard&sourceId=bill&cardNo=请勿修改***金额&bankAccount=' + name + '&' + 'amount=' + str(
                 total_amount) + '&bankMark=' + str(bank_mark) + '&bankName=' + bank_type + '&cardIndex=' + str(
                 card_index) + '&cardNoHidden=true&cardChannel=HISTORY_CARD&orderSource=from'
+
+            # 引入日志
+            log = MakeLogs()
+            content = '用户：' + str(user.username) + ' 创建订单_' + str(order_no) + ' 金额_' + str(total_amount)
+            log.add_logs('1', content, user.id)
+
             order.save()
             resp['msg'] = '创建成功'
             resp['code'] = 200
@@ -637,6 +643,13 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
                         instance.real_money = '%.2f' % (money * (1 - user_up.service_rate))
                         instance.time_rate = user_up.service_rate
                         user_up.total_money = '%.2f' % (user_money - money)
+
+                        # 引入日志
+                        log = MakeLogs()
+                        content = '用户：' + str(user_up.username) + '创建提现_' + '订单号_' + str(withdraw_no) + ' 金额_' + str(
+                            money)
+                        log.add_logs('2', content, user_up.id)
+
                         user_up.save()
                         instance.save()
                         code = 200
@@ -672,6 +685,12 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
                 code = 200
                 resp['msg'].append('状态修改成功')
 
+                # 引入日志
+                log = MakeLogs()
+                content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_' + str(
+                    withdraw_obj.withdraw_no) + ' 状态为_ 提现成功'
+                log.add_logs('2', content, self.request.user.id)
+
             elif withdraw_status == '2' and withdraw_obj.withdraw_status == '0':
                 user_queryset = UserProfile.objects.filter(id=withdraw_obj.user_id)
                 if user_queryset:
@@ -681,6 +700,13 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
                     resp['msg'].append('状态修改成功')
                     user.save()
                     withdraw_obj.withdraw_status = withdraw_status
+
+                    # 引入日志
+                    log = MakeLogs()
+                    content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_' + str(
+                        withdraw_obj.withdraw_no) + ' 状态为_ 提现驳回'
+                    log.add_logs('2', content, self.request.user.id)
+
                 else:
                     code = 400
                     resp['msg'].append('用户不存在')
@@ -688,8 +714,8 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
             #     code = 400
             #     resp['msg'].append('操作有误')
             if remark_info:
-                print('remark_info',remark_info)
-                withdraw_obj.remark_info=remark_info
+                print('remark_info', remark_info)
+                withdraw_obj.remark_info = remark_info
                 code = 200
                 resp['msg'].append('备注添加成功')
             withdraw_obj.save()

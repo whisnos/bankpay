@@ -17,15 +17,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
+from trade.filters import LogFilter
 from trade.models import OrderInfo
 from trade.serializers import OrderListSerializer
 from user.filters import UserFilter
-from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo
-from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer
+from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo, OperateLog
+from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer, \
+    LogInfoSerializer, LogListInfoSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code, make_md5
-from utils.permissions import IsOwnerOrReadOnly
+from utils.permissions import IsOwnerOrReadOnly, MakeLogs
 
 User = get_user_model()
 
@@ -47,10 +49,11 @@ class CustomModelBackend(ModelBackend):
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
             if user.level:
-                print(555555)
                 if user.check_password(password):
+
                     return user
                 else:
+                    print(666)
                     return None
         except Exception as e:
             try:
@@ -205,11 +208,36 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             if get_proxyid:
                 user_queryset = UserProfile.objects.filter(id=get_proxyid)
                 if user_queryset:
+                    # 引入日志
+                    log=MakeLogs()
                     user = user_queryset[0]
+
+                    if add_money:
+                        user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
+                        resp['msg'].append('加款成功')
+                        # 加日志
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 加款 ' + ' 金额_'+str(add_money)
+                        log.add_logs('3', content, self.request.user.id)
+                    if minus_money:
+                        if Decimal(minus_money) < Decimal(user.total_money):
+                            user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
+                            resp['msg'].append('扣款成功')
+                            # 加日志
+                            content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
+                                user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
+                            log.add_logs('3', content, self.request.user.id)
+                        else:
+                            code = 404
+                            resp['msg'].append('余额不足，扣款失败')
+
                     if password == password2:
                         if password:
                             user.set_password(password)
                             resp['msg'].append('密码修改成功')
+
+                            # 加日志
+                            content = '用户：' + str(self.request.user.username) + ' 对 ' +str(user.username)+ '修改密码'
+                            log.add_logs('3', content, self.request.user.id)
                     else:
                         resp['msg'].append('输入密码不一致')
 
@@ -231,12 +259,35 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
                     if service_rate:
                         resp['msg'].append('费率修改成功')
+                        old_c=user.service_rate
+
                         user.service_rate = float(service_rate)
+                        # 加日志
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 原费率_' + str(
+                            old_c) + ' 改为_' + str(service_rate)
+                        log.add_logs('3', content, self.request.user.id)
+
                     if proxy_id:
-                        user_proxy=UserProfile.objects.filter(id=proxy_id,is_proxy=False,is_active=True)
+                        user_proxy = UserProfile.objects.filter(id=proxy_id, is_proxy=False, is_active=True)
                         if user_proxy:
-                            user.proxy_id=proxy_id
+                            new_user=user_proxy[0]
+                            new_c=new_user.username
+
+                            old_c=user.username
+                            old_user=UserProfile.objects.filter(id=user.proxy_id)
+                            if old_user:
+                                old_user_name=old_user[0].username
+                            else:
+                                old_user_name=''
+                            user.proxy_id = proxy_id
                             resp['msg'].append('商户调整成功')
+                            user.save()
+                            serializer = UserDetailSerializer(user)
+                            resp['data'] = serializer.data
+
+                            content = '商户调整：' + str(old_c) +'属：'+str(old_user_name)+ ' 调整给：' + str(new_c)
+                            log.add_logs('3', content, self.request.user.id)
+
                         else:
                             resp['msg'].append('调整失败，代理不存在')
 
@@ -279,20 +330,28 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     code = 404
                     resp['msg'].append('操作密码错误1')
 
-
         # tuoxie 修改 tuoxie001
         if not self.request.user.is_proxy and not self.request.user.is_superuser:
             id_list = [user_obj.id for user_obj in UserProfile.objects.filter(proxy_id=self.request.user.id)]
             if get_proxyid:
                 if int(get_proxyid) in id_list:
                     user = UserProfile.objects.filter(id=get_proxyid)[0]
+                    # 引入日志
+                    log = MakeLogs()
                     if add_money:
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
+                        # 加日志
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 加款 ' + ' 金额_'+str(add_money)
+                        log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
+                            # 加日志
+                            content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
+                                user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
+                            log.add_logs('3', content, self.request.user.id)
                         else:
                             code = 404
                             resp['msg'].append('余额不足，扣款失败')
@@ -301,6 +360,10 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         if password:
                             user.set_password(password)
                             resp['msg'].append('密码修改成功')
+
+                            # 加日志
+                            content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + '修改密码'
+                            log.add_logs('3', content, self.request.user.id)
                     else:
                         code = 404
                         resp['msg'].append('输入密码不一致')
@@ -323,8 +386,12 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.is_active = is_active
                     if service_rate:
                         resp['msg'].append('费率修改成功')
+                        old_c=user.service_rate
                         user.service_rate = float(service_rate)
 
+                        # 加日志
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 原费率_'+str(old_c)+' 改为_'+str(service_rate)
+                        log.add_logs('3', content, self.request.user.id)
                     if safe_code == safe_code2:
                         if password:
                             print('代理修改商户操作密码中..........')
@@ -543,3 +610,60 @@ def version(request):
     resp['link'] = ver_obj.update_link
     resp['remark'] = ver_obj.remark
     return JsonResponse(resp)
+
+
+class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = LogInfoSerializer
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    pagination_class = UserListPagination
+    # filter_backends = (SearchFilter,)
+    # search_fields = ("content")
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = LogFilter
+    def get_queryset(self):
+        if self.request.user.is_proxy:
+            return []
+        if self.request.user.is_superuser:
+            return OperateLog.objects.all().order_by('-add_time')
+        if not self.request.user.is_proxy:
+            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-add_time')
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [IsAuthenticated()]
+        elif self.action == "create":
+            return [IsAuthenticated()]
+        elif self.action == "list":
+            # try:
+            #     if self.request.user.is_proxy:
+            #         if self.request.user.is_superuser or not self.request.user.is_proxy:
+            return [IsAuthenticated()]
+            # except Exception:
+            #     print(6)
+            #     return False
+
+        #         else:
+        #             return None
+        #     else:
+        #         return None
+        else:
+            return []
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return LogListInfoSerializer
+        else:
+            return LogInfoSerializer
+    # def create(self, request, *args, **kwargs):
+    #     if self.request.user.is_superuser:
+    #         serializer = self.get_serializer(data=request.data)
+    #         serializer.is_valid(raise_exception=True)
+    #         code = 201
+    #         self.perform_create(serializer)
+    #         response_data = {'msg': '创建成功'}
+    #         headers = self.get_success_headers(response_data)
+    #         return Response(response_data, status=code, headers=headers)
+    #
+    #     code = 403
+    #     response_data = {'msg': '没有权限'}
+    #     headers = self.get_success_headers(response_data)
+    #     return Response(response_data, status=code, headers=headers)

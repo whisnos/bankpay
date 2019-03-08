@@ -7,10 +7,11 @@ from rest_framework_jwt.utils import jwt_decode_handler
 import re
 
 from trade.models import OrderInfo
-from user.models import UserProfile, BankInfo, NoticeInfo
+from user.models import UserProfile, BankInfo, NoticeInfo, OperateLog
 from django.db.models import Q, Sum
 
 from utils.make_code import make_uuid_code, make_auth_code, make_login_token
+from utils.permissions import MakeLogs
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
@@ -49,6 +50,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user_up = self.context['request'].user
+        log = MakeLogs()
         if user_up.is_superuser:
             del validated_data['password2']
             user = UserProfile.objects.create(**validated_data)
@@ -60,6 +62,10 @@ class RegisterUserSerializer(serializers.ModelSerializer):
 
             user.level = 2
             user.save()
+
+            # 引入日志
+            content = '用户：' + str(user_up.username) + ' 创建用户_' + str(user.username)
+            log.add_logs('3', content, user_up.user.id)
             return user
         if not user_up.is_proxy:
             del validated_data['password2']
@@ -73,6 +79,10 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             user.proxy_id = user_up.id
             user.is_proxy = True
             user.save()
+
+            # 引入日志
+            content = '用户：' + str(user_up.username) + ' 创建用户_' + str(user.username)
+            log.add_logs('3', content, user_up.id)
             return user
         return user_up
 
@@ -857,4 +867,29 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderInfo
+        fields = '__all__'
+class LogInfoSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    # content = serializers.HiddenField(default='')
+    # operate_type = serializers.SerializerMethodField()
+    # def get_operate_type(self,obj):
+    #
+    #     return '1111'
+    class Meta:
+        model = OperateLog
+        fields = '__all__'
+
+class LogListInfoSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    whodo = serializers.SerializerMethodField()
+    def get_whodo(self,obj):
+        id=obj.user_id
+        user_queryset=UserProfile.objects.filter(id=id)
+        if user_queryset:
+            return user_queryset[0].username
+        return ''
+    class Meta:
+        model = OperateLog
         fields = '__all__'

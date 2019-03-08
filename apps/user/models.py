@@ -21,7 +21,8 @@ class UserProfile(AbstractUser):
     service_rate = models.FloatField(default=0.02, verbose_name='提现费率')
     level = models.IntegerField(default=3, verbose_name='用户等级')  # 1 超级用户 2 tuoxie 3 tuoxie001
     login_token = models.CharField(max_length=8, null=True, blank=True, verbose_name='副token')
-    safe_code = models.CharField(max_length=32,default='e10adc3949ba59abbe56e057f20f883e',verbose_name='安全码')
+    safe_code = models.CharField(max_length=32, default='e10adc3949ba59abbe56e057f20f883e', verbose_name='安全码')
+
     class Meta:
         verbose_name = '用户管理'
         verbose_name_plural = verbose_name
@@ -99,3 +100,27 @@ class VersionInfo(models.Model):
 
     def __str__(self):
         return self.version_no
+
+
+class OperateLog(models.Model):
+    OPERATE_STATUS = {
+        ('0', '登录管理'),  # 登录ip
+        ('1', '订单管理'),  # 创建 状态记录
+        ('2', '提现管理'),  # 创建 审核 驳回
+        ('3', '用户管理'),  # 创建 修改密码 费率 加款 扣款
+    }
+    operate_type = models.CharField(max_length=20,
+                                    choices=OPERATE_STATUS, verbose_name='操作类型')
+    # ua = models.CharField(max_length=300, null=True, blank=True, verbose_name='访问ua')
+    # ip = models.CharField(max_length=50, null=True, blank=True, verbose_name='访问ip')
+    content = models.CharField(max_length=400, verbose_name='日志内容')
+    user = models.ForeignKey(UserProfile, null=True, blank=True, related_name='logs', verbose_name='用户',
+                             on_delete=models.CASCADE)
+    add_time = models.DateTimeField(default=datetime.now, verbose_name='创建时间')
+
+    def __str__(self):
+        return self.user.username
+
+    class Meta:
+        verbose_name = '操作日志'
+        verbose_name_plural = verbose_name
