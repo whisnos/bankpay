@@ -868,9 +868,12 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderInfo
         fields = '__all__'
+
+
 class LogInfoSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+
     # content = serializers.HiddenField(default='')
     # operate_type = serializers.SerializerMethodField()
     # def get_operate_type(self,obj):
@@ -880,16 +883,23 @@ class LogInfoSerializer(serializers.ModelSerializer):
         model = OperateLog
         fields = '__all__'
 
+
 class LogListInfoSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     whodo = serializers.SerializerMethodField()
-    def get_whodo(self,obj):
-        id=obj.user_id
-        user_queryset=UserProfile.objects.filter(id=id)
+    type_name = serializers.SerializerMethodField()
+
+    def get_whodo(self, obj):
+        id = obj.user_id
+        user_queryset = UserProfile.objects.filter(id=id)
         if user_queryset:
             return user_queryset[0].username
         return ''
+
+    def get_type_name(self, obj):
+        return eval('obj.get_operate_type_display()')
+
     class Meta:
         model = OperateLog
         fields = '__all__'

@@ -137,7 +137,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return UserProfile.objects.all().order_by('id').exclude(id=user.id)
+            return UserProfile.objects.all().order_by('id') # .exclude(id=user.id)
         return UserProfile.objects.filter(proxy_id=user.id).order_by('id')
 
     def get_serializer_class(self):
