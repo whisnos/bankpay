@@ -19,9 +19,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
-from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version,LogsViewset
+from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version,LogsViewset,CallBackViewset
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset
+    pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset,test
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users")
@@ -34,6 +34,7 @@ route.register(r'notices', NoticeInfoViewset, base_name="notices")
 route.register(r'charts', ChartInfoViewset, base_name="charts")
 route.register(r'releases', ReleaseViewset, base_name="releases")
 route.register(r'logs', LogsViewset, base_name="logs")
+route.register(r'backs', CallBackViewset, base_name="backs")
 
 urlpatterns = [
     url(r'^', include(route.urls)),
@@ -45,6 +46,7 @@ urlpatterns = [
     url(r'^mobile_pay/$', mobile_pay, name="mobile_pay"),
     url(r'^device_login/$', device_login, name='device_login'),
     url(r'^version/$', version, name='version'),
+    url(r'^test/$', test, name='test'),
     # 查询订单接口
     url(r'^query_order/$', QueryOrderView.as_view(), name="query_order"),
 ]

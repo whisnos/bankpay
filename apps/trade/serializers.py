@@ -29,9 +29,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderUpdateSeralizer(serializers.ModelSerializer):
+    id = serializers.IntegerField(write_only=True,required=True)
     class Meta:
         model = OrderInfo
-        fields = ['pay_status']
+        fields = ['id']
 
 
 class BankinfoSerializer(serializers.ModelSerializer):

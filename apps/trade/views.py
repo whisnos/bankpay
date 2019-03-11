@@ -7,6 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from decimal import Decimal
 # Create your views here.
+from django.views.decorators.csrf import csrf_exempt
 from django_filters.rest_framework import DjangoFilterBackend
 # from import_export.admin import ExportMixin
 from rest_framework import mixins, viewsets, filters, views, serializers
@@ -25,7 +26,7 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
     UpdateDeviceSerializer, UpdateBankinfoSerializer, ReleaseSerializer
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
-from user.views import MyThrottle
+# from user.views import MyThrottle
 from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
 from utils.permissions import IsOwnerOrReadOnly, MakeLogs
 
@@ -365,7 +366,7 @@ class GetPayView(views.APIView):
 
             # 引入日志
             log = MakeLogs()
-            content = '用户：' + str(user.username) + ' 创建订单_' + str(order_no) + ' 金额_' + str(total_amount)
+            content = '用户：' + str(user.username) + ' 创建订单_ ' + str(order_no) + ' 金额_' + str(total_amount)
             log.add_logs('1', content, user.id)
 
             order.save()
@@ -646,7 +647,7 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
 
                         # 引入日志
                         log = MakeLogs()
-                        content = '用户：' + str(user_up.username) + '创建提现_' + '订单号_' + str(withdraw_no) + ' 金额_' + str(
+                        content = '用户：' + str(user_up.username) + '创建提现_' + '订单号_ ' + str(withdraw_no) + ' 金额_' + str(
                             money)
                         log.add_logs('2', content, user_up.id)
 
@@ -687,7 +688,7 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
 
                 # 引入日志
                 log = MakeLogs()
-                content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_' + str(
+                content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_ ' + str(
                     withdraw_obj.withdraw_no) + ' 状态为_ 提现成功'
                 log.add_logs('2', content, self.request.user.id)
 
@@ -703,7 +704,7 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
 
                     # 引入日志
                     log = MakeLogs()
-                    content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_' + str(
+                    content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_ ' + str(
                         withdraw_obj.withdraw_no) + ' 状态为_ 提现驳回'
                     log.add_logs('2', content, self.request.user.id)
 
@@ -1097,3 +1098,6 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             return Response(data=resp, status=code)
 
         # return JsonResponse(serializer.errors, status=400)
+@csrf_exempt
+def test(request):
+    return HttpResponse('success')

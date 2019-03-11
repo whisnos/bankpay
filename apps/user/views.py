@@ -1,6 +1,7 @@
 import json, time
 from decimal import Decimal
-
+import datetime
+import requests
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
@@ -19,9 +20,10 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
 from trade.filters import LogFilter
 from trade.models import OrderInfo
-from trade.serializers import OrderListSerializer
+from trade.serializers import OrderListSerializer, OrderSerializer, OrderUpdateSeralizer
+from trade.views import OrderListPagination
 from user.filters import UserFilter
-from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo, OperateLog
+from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo, OperateLog, BankInfo
 from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer, \
     LogInfoSerializer, LogListInfoSerializer
 from django.contrib.auth import get_user_model
@@ -137,7 +139,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return UserProfile.objects.all().order_by('id') # .exclude(id=user.id)
+            return UserProfile.objects.all().order_by('id')  # .exclude(id=user.id)
         return UserProfile.objects.filter(proxy_id=user.id).order_by('id')
 
     def get_serializer_class(self):
@@ -209,14 +211,15 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                 user_queryset = UserProfile.objects.filter(id=get_proxyid)
                 if user_queryset:
                     # 引入日志
-                    log=MakeLogs()
+                    log = MakeLogs()
                     user = user_queryset[0]
 
                     if add_money:
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
                         # 加日志
-                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 加款 ' + ' 金额_'+str(add_money)
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
+                            user.username) + ' 加款 ' + ' 金额_' + str(add_money)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -227,7 +230,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                 user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
                             log.add_logs('3', content, self.request.user.id)
                         else:
-                            code = 404
+                            # code = 404
                             resp['msg'].append('余额不足，扣款失败')
 
                     if password == password2:
@@ -236,7 +239,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             resp['msg'].append('密码修改成功')
 
                             # 加日志
-                            content = '用户：' + str(self.request.user.username) + ' 对 ' +str(user.username)+ '修改密码'
+                            content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + '修改密码'
                             log.add_logs('3', content, self.request.user.id)
                     else:
                         resp['msg'].append('输入密码不一致')
@@ -259,7 +262,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
 
                     if service_rate:
                         resp['msg'].append('费率修改成功')
-                        old_c=user.service_rate
+                        old_c = user.service_rate
 
                         user.service_rate = float(service_rate)
                         # 加日志
@@ -270,22 +273,22 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     if proxy_id:
                         user_proxy = UserProfile.objects.filter(id=proxy_id, is_proxy=False, is_active=True)
                         if user_proxy:
-                            new_user=user_proxy[0]
-                            new_c=new_user.username
+                            new_user = user_proxy[0]
+                            new_c = new_user.username
 
-                            old_c=user.username
-                            old_user=UserProfile.objects.filter(id=user.proxy_id)
+                            old_c = user.username
+                            old_user = UserProfile.objects.filter(id=user.proxy_id)
                             if old_user:
-                                old_user_name=old_user[0].username
+                                old_user_name = old_user[0].username
                             else:
-                                old_user_name=''
+                                old_user_name = ''
                             user.proxy_id = proxy_id
                             resp['msg'].append('商户调整成功')
                             user.save()
                             serializer = UserDetailSerializer(user)
                             resp['data'] = serializer.data
 
-                            content = '商户调整：' + str(old_c) +'属：'+str(old_user_name)+ ' 调整给：' + str(new_c)
+                            content = '商户调整：' + str(old_c) + '属：' + str(old_user_name) + ' 调整给：' + str(new_c)
                             log.add_logs('3', content, self.request.user.id)
 
                         else:
@@ -342,7 +345,8 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
                         # 加日志
-                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 加款 ' + ' 金额_'+str(add_money)
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
+                            user.username) + ' 加款 ' + ' 金额_' + str(add_money)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -353,7 +357,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                 user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
                             log.add_logs('3', content, self.request.user.id)
                         else:
-                            code = 404
+                            # code = 404
                             resp['msg'].append('余额不足，扣款失败')
 
                     if password == password2:
@@ -365,7 +369,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + '修改密码'
                             log.add_logs('3', content, self.request.user.id)
                     else:
-                        code = 404
+                        # code = 404
                         resp['msg'].append('输入密码不一致')
 
                     if notify_url:
@@ -386,11 +390,12 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.is_active = is_active
                     if service_rate:
                         resp['msg'].append('费率修改成功')
-                        old_c=user.service_rate
+                        old_c = user.service_rate
                         user.service_rate = float(service_rate)
 
                         # 加日志
-                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 原费率_'+str(old_c)+' 改为_'+str(service_rate)
+                        content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 原费率_' + str(
+                            old_c) + ' 改为_' + str(service_rate)
                         log.add_logs('3', content, self.request.user.id)
                     if safe_code == safe_code2:
                         if password:
@@ -398,7 +403,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             self.request.user.safe_code = make_md5(safe_code)
                             resp['msg'].append('操作密码修改成功')
                     else:
-                        code = 404
+                        # code = 404
                         resp['msg'].append('操作输入密码不一致')
                     code = 200
                     user.save()
@@ -411,16 +416,16 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             qq = self.request.data.get('qq', '')
             user = self.request.user
 
-            if add_money:
-                user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
-                resp['msg'].append('加款成功')
-            if minus_money:
-                if Decimal(minus_money) < Decimal(user.total_money):
-                    user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
-                    resp['msg'].append('扣款成功')
-                else:
-                    code = 404
-                    resp['msg'].append('余额不足，扣款失败')
+            # if add_money:
+            #     user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
+            #     resp['msg'].append('加款成功')
+            # if minus_money:
+            #     if Decimal(minus_money) < Decimal(user.total_money):
+            #         user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
+            #         resp['msg'].append('扣款成功')
+            #     else:
+            #         code = 404
+            #         resp['msg'].append('余额不足，扣款失败')
 
             if password == password2:
                 if password:
@@ -621,33 +626,25 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
     # search_fields = ("content")
     filter_backends = (DjangoFilterBackend,)
     filter_class = LogFilter
+
     def get_queryset(self):
         if self.request.user.is_proxy:
-            return []
+            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-id')
         if self.request.user.is_superuser:
-            return OperateLog.objects.all().order_by('-add_time')
+            return OperateLog.objects.all().order_by('-id')
         if not self.request.user.is_proxy:
-            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-add_time')
+            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-id')
+
     def get_permissions(self):
         if self.action == 'retrieve':
             return [IsAuthenticated()]
         elif self.action == "create":
             return [IsAuthenticated()]
         elif self.action == "list":
-            # try:
-            #     if self.request.user.is_proxy:
-            #         if self.request.user.is_superuser or not self.request.user.is_proxy:
             return [IsAuthenticated()]
-            # except Exception:
-            #     print(6)
-            #     return False
-
-        #         else:
-        #             return None
-        #     else:
-        #         return None
         else:
             return []
+
     def get_serializer_class(self):
         if self.action == 'list':
             return LogListInfoSerializer
@@ -667,3 +664,140 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
     #     response_data = {'msg': '没有权限'}
     #     headers = self.get_success_headers(response_data)
     #     return Response(response_data, status=code, headers=headers)
+
+
+class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.UpdateModelMixin):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+    # serializer_class = OrderListSerializer
+    pagination_class = OrderListPagination
+
+    def get_permissions(self):
+        return [IsAuthenticated()]
+
+    def get_serializer_class(self):
+        # if self.action == "create":
+        #     return OrderSerializer
+        if self.action == "update":
+            return OrderUpdateSeralizer
+        return OrderListSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_proxy:
+            return []
+        if self.request.user.is_superuser:
+            return OrderInfo.objects.all().order_by('-id')
+        if not self.request.user.is_proxy:
+            userid_list = []
+            user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)
+            for user in user_qset:
+                userid_list.append(user.id)
+            return OrderInfo.objects.filter(user_id__in=userid_list)
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        resp = {'msg': []}
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        userid_list = []
+        user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)
+        for users in user_qset:
+            userid_list.append(users.id)
+        id = self.request.data.get('id', '')
+        order_queryset = OrderInfo.objects.filter(id=id)
+        if order_queryset:
+            order_obj=order_queryset[0]
+            id = order_obj.user_id
+        else:
+            resp['msg'] = '订单不存在'
+            return Response(data=resp, status=400)
+        if user.is_superuser:
+            id = '1'
+            userid_list = ['1']
+        if id in userid_list:
+            # order_obj = self.get_object()
+            if user.is_superuser or not user.is_proxy:
+                if order_obj.pay_status in ['NOTICE_FAIL', 'TRADE_CLOSE']:
+                    user_queryset = UserProfile.objects.filter(id=order_obj.user_id)
+                    if user_queryset:
+                        order_user = user_queryset[0]
+                        notify_url = order_user.notify_url
+                        if not notify_url:
+                            order_obj.pay_status = 'NOTICE_FAIL'
+                            order_obj.save()
+                            resp['msg'] = '订单处理成功，无效notify_url，通知失败'
+                            return Response(data=resp, status=400)
+
+                        data_dict = {}
+                        data_dict['pay_status'] = order_obj.pay_status
+                        data_dict['add_time'] = str(order_obj.add_time)
+                        data_dict['pay_time'] = str(order_obj.pay_time)
+                        data_dict['total_amount'] = str(order_obj.total_amount)
+                        data_dict['order_id'] = order_obj.order_id
+                        data_dict['order_no'] = order_obj.order_no
+                        data_dict['user_msg'] = order_obj.user_msg
+                        resp['data'] = data_dict
+                        r = json.dumps(resp)
+                        headers = {'Content-Type': 'application/json'}
+
+                        if order_obj.pay_status == 'NOTICE_FAIL':
+                            try:
+                                res = requests.post(notify_url, headers=headers, data=r, timeout=10, stream=True)
+                                if res.text == 'success':
+                                    resp['msg'] = '回调成功，成功更改订单状态!'
+                                    order_obj.pay_status = 'TRADE_SUCCESS'
+                                    order_obj.save()
+                                    return Response(data=resp, status=200)
+                                else:
+                                    resp['msg'] = '回调处理，未修改状态，通知失败'
+                                    return Response(data=resp, status=200)
+                            except Exception:
+                                resp['msg'] = '回调异常，订单状态未失败'
+                                return Response(data=resp, status=400)
+                        if order_obj.pay_status == 'TRADE_CLOSE':
+                            try:
+                                res = requests.post(notify_url, headers=headers, data=r, timeout=10, stream=True)
+                                if res.text == 'success':
+
+                                    # 更新用户收款
+                                    order_user.total_money = '%.2f' % (
+                                            Decimal(order_user.total_money) + Decimal(order_obj.total_amount))
+                                    order_user.save()
+
+                                    account_num = order_obj.account_num
+                                    bank_queryset = BankInfo.objects.filter(account_num=account_num)
+                                    if bank_queryset:
+                                        bank_obj = bank_queryset[0]
+
+                                        # 更新商家存钱
+                                        bank_obj.total_money = '%.2f' % (
+                                                Decimal(bank_obj.total_money) + Decimal(order_obj.total_amount))
+                                        bank_obj.last_time = datetime.datetime.now()
+                                        bank_obj.save()
+
+                                    else:
+                                        resp['mark'] = '不存在有效银行卡，金额未添加到银行卡'
+                                    resp['data']['pay_status']='TRADE_SUCCESS'
+                                    resp['data']['pay_time'] = datetime.datetime.now()
+                                    order_obj.pay_status = 'TRADE_SUCCESS'
+                                    order_obj.save()
+                                    resp['msg'] = '回调成功，已自动加款，金额:' + str(order_obj.total_amount)
+                                    return Response(data=resp, status=200)
+                                else:
+                                    resp['msg'] = '回调处理完成，一样通知失败'
+                                    return Response(data=resp, status=400)
+                            except Exception:
+                                order_obj.pay_status = 'NOTICE_FAIL'
+                                order_obj.save()
+                                resp['msg'] = '回调处理，通知失败，未加款'
+                                return Response(data=resp, status=400)
+                code = 400
+                resp['msg'] = '操作状态不对'
+                return Response(data=resp, status=code)
+            code = 403
+            resp['msg'] = '无操作权限'
+            return Response(data=resp, status=code)
+        code = 400
+        resp['msg'] = '操作对象不存在'
+        return Response(data=resp, status=code)
