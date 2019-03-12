@@ -633,7 +633,11 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
         if self.request.user.is_superuser:
             return OperateLog.objects.all().order_by('-id')
         if not self.request.user.is_proxy:
-            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-id')
+            userid_list=[]
+            user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)
+            for users in user_qset:
+                userid_list.append(users.id)
+            return OperateLog.objects.filter(Q(user_id__in=userid_list)|Q(user_id=self.request.user.id)).order_by('-add_time')
 
     def get_permissions(self):
         if self.action == 'retrieve':

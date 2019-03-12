@@ -383,7 +383,7 @@ class GetPayView(views.APIView):
             # resp['card_index'] = card_index
             resp['add_time'] = str(order.add_time)
             # resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
-            resp['pay_url'] = FONT_DOMAIN + '/get_qrcode/' + order_no
+            resp['pay_url'] = FONT_DOMAIN + '/pay/' + order_no
 
             return Response(resp)
         resp['code'] = 404
