@@ -366,7 +366,7 @@ class GetPayView(views.APIView):
 
             # 引入日志
             log = MakeLogs()
-            content = '用户：' + str(user.username) + ' 创建订单_ ' + str(order_no) + ' 金额_' + str(total_amount)
+            content = '用户：' + str(user.username) + ' 创建订单_ ' + str(order_no) + '  金额 ' + str(total_amount) + ' 元'
             log.add_logs('1', content, user.id)
 
             order.save()
@@ -647,8 +647,8 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
 
                         # 引入日志
                         log = MakeLogs()
-                        content = '用户：' + str(user_up.username) + '创建提现_' + '订单号_ ' + str(withdraw_no) + ' 金额_' + str(
-                            money)
+                        content = '用户：' + str(user_up.username) + '创建提现_' + '订单号_ ' + str(withdraw_no) + '  金额 ' + str(
+                            money) + ' 元'
                         log.add_logs('2', content, user_up.id)
 
                         user_up.save()

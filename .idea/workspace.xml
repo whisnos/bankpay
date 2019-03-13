@@ -24,8 +24,8 @@
       <file leaf-file-name="urls.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pay/urls.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="433">
-              <caret line="42" column="26" lean-forward="true" selection-start-line="42" selection-start-column="26" selection-end-line="42" selection-end-column="26" />
+            <state relative-caret-position="388">
+              <caret line="42" column="25" lean-forward="true" selection-start-line="42" selection-start-column="25" selection-end-line="42" selection-end-column="25" />
               <folding>
                 <element signature="e#662#694#0" expanded="true" />
               </folding>
@@ -36,8 +36,8 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="464">
-              <caret line="382" column="45" lean-forward="true" selection-start-line="382" selection-start-column="45" selection-end-line="382" selection-end-column="45" />
+            <state relative-caret-position="633">
+              <caret line="1043" column="29" lean-forward="true" selection-start-line="1043" selection-start-column="29" selection-end-line="1043" selection-end-column="29" />
               <folding>
                 <element signature="e#0#58#0" expanded="true" />
               </folding>
@@ -48,8 +48,8 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/apps/user/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="625">
-              <caret line="639" column="116" selection-start-line="639" selection-start-column="116" selection-end-line="639" selection-end-column="116" />
+            <state relative-caret-position="215">
+              <caret line="356" column="83" lean-forward="true" selection-start-line="356" selection-start-column="83" selection-end-line="356" selection-end-column="90" />
               <folding>
                 <element signature="e#0#17#0" expanded="true" />
               </folding>
@@ -60,8 +60,8 @@
       <file leaf-file-name="serializers.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/apps/user/serializers.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="554">
-              <caret line="519" column="43" lean-forward="true" selection-start-line="517" selection-start-column="12" selection-end-line="519" selection-end-column="43" />
+            <state relative-caret-position="9614">
+              <caret line="519" column="43" selection-start-line="517" selection-start-column="12" selection-end-line="519" selection-end-column="43" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -81,7 +81,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>password</find>
       <find>device_obj</find>
       <find>UserUpdateSerializer</find>
       <find>self.request.data</find>
@@ -111,6 +110,7 @@
       <find>proxy_id</find>
       <find>try</find>
       <find>订单号_</find>
+      <find>金额_</find>
     </findStrings>
     <replaceStrings>
       <replace>get_proxyid</replace>
@@ -118,6 +118,7 @@
       <replace>add_time__gte</replace>
       <replace>add_time__range</replace>
       <replace>proxy_name</replace>
+      <replace>金额</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -355,12 +356,18 @@
       <option name="project" value="LOCAL" />
       <updated>1552298438670</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="M311.1800">
+      <created>1552385373928</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1552385373928</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
@@ -368,8 +375,8 @@
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" weight="0.3224401" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.38671023" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="7" visible="true" weight="0.26143792" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16791044" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="7" visible="true" weight="0.22004357" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16950959" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="right" id="Database" order="3" />
       <window_info anchor="right" id="SciView" order="3" />
@@ -388,24 +395,24 @@
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info id="Favorites" order="2" side_tool="true" />
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2153518" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.38671023" />
-      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32897604" />
+      <window_info anchor="bottom" id="Python Console" order="10" weight="0.3224401" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.3888889" />
       <window_info anchor="right" id="Database" order="4" />
       <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.5206972" />
       <window_info anchor="bottom" id="Event Log" order="12" side_tool="true" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="right" id="SciView" order="3" />
-      <window_info anchor="bottom" id="Find" order="1" weight="0.32897604" />
-      <window_info anchor="bottom" id="Python Console" order="10" weight="0.3224401" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info id="Favorites" order="2" side_tool="true" />
     </layout-to-restore>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -793,16 +800,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="525">
           <caret line="50" column="65" selection-start-line="50" selection-start-column="65" selection-end-line="50" selection-end-column="65" />
-          <folding>
-            <element signature="e#0#52#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/apps/user/serializers.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="554">
-          <caret line="519" column="43" lean-forward="true" selection-start-line="517" selection-start-column="12" selection-end-line="519" selection-end-column="43" />
+        <state relative-caret-position="9614">
+          <caret line="519" column="43" selection-start-line="517" selection-start-column="12" selection-end-line="519" selection-end-column="43" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
@@ -811,8 +815,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/apps/user/views.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="625">
-          <caret line="639" column="116" selection-start-line="639" selection-start-column="116" selection-end-line="639" selection-end-column="116" />
+        <state relative-caret-position="215">
+          <caret line="356" column="83" lean-forward="true" selection-start-line="356" selection-start-column="83" selection-end-line="356" selection-end-column="90" />
           <folding>
             <element signature="e#0#17#0" expanded="true" />
           </folding>
@@ -821,8 +825,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pay/urls.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="433">
-          <caret line="42" column="26" lean-forward="true" selection-start-line="42" selection-start-column="26" selection-end-line="42" selection-end-column="26" />
+        <state relative-caret-position="388">
+          <caret line="42" column="25" lean-forward="true" selection-start-line="42" selection-start-column="25" selection-end-line="42" selection-end-column="25" />
           <folding>
             <element signature="e#662#694#0" expanded="true" />
           </folding>
@@ -831,8 +835,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/apps/trade/views.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="464">
-          <caret line="382" column="45" lean-forward="true" selection-start-line="382" selection-start-column="45" selection-end-line="382" selection-end-column="45" />
+        <state relative-caret-position="633">
+          <caret line="1043" column="29" lean-forward="true" selection-start-line="1043" selection-start-column="29" selection-end-line="1043" selection-end-column="29" />
           <folding>
             <element signature="e#0#58#0" expanded="true" />
           </folding>

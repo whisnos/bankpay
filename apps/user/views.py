@@ -219,7 +219,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         resp['msg'].append('加款成功')
                         # 加日志
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额_' + str(add_money)
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元'
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -227,7 +227,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             resp['msg'].append('扣款成功')
                             # 加日志
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元'
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
@@ -346,7 +346,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         resp['msg'].append('加款成功')
                         # 加日志
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额_' + str(add_money)
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元'
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -354,7 +354,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             resp['msg'].append('扣款成功')
                             # 加日志
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额_' + str(add_money)
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元'
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
