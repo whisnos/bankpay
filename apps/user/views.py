@@ -48,21 +48,44 @@ def log_in(func):
 # @log_in
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
+        if request.META.get('HTTP_X_FORWARDED_FOR', ''):
+            print('HTTP_X_FORWARDED_FOR')
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        else:
+            print('REMOTE_ADDR')
+            ip = request.META.get('REMOTE_ADDR', '')
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
             if user.level:
                 if user.check_password(password):
-
+                    # 引入日志
+                    content = '用户：' + str(user.username) + ' 登录ip为：' + str(ip)
+                    log_obj = OperateLog()
+                    log_obj.operate_type = '0'
+                    log_obj.content = content
+                    log_obj.user_id = user.id
+                    log_obj.save()
+                    print('用户登录成功')
                     return user
                 else:
                     print(666)
                     return None
         except Exception as e:
             try:
+                print(user.login_token,password)
                 if user.login_token == password:
+                    print('设备登录成功',user.id)
                     userid = user.user_id
-                    user = User.objects.get(id=userid)
-                    return user
+                    user1 = User.objects.get(id=userid)
+                    # 引入日志
+                    # content = '设备：' + str(user.username) + ' 登录ip为：' + str(ip)
+                    # log_obj = OperateLog()
+                    # log_obj.operate_type = '0'
+                    # log_obj.content = content
+                    # log_obj.user_id = user.id
+                    # log_obj.save()
+                    # print('设备登录成功')
+                    return user1
                 return None
             except Exception as e:
                 return None
@@ -622,8 +645,6 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     pagination_class = UserListPagination
-    # filter_backends = (SearchFilter,)
-    # search_fields = ("content")
     filter_backends = (DjangoFilterBackend,)
     filter_class = LogFilter
 
@@ -654,34 +675,17 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
             return LogListInfoSerializer
         else:
             return LogInfoSerializer
-    # def create(self, request, *args, **kwargs):
-    #     if self.request.user.is_superuser:
-    #         serializer = self.get_serializer(data=request.data)
-    #         serializer.is_valid(raise_exception=True)
-    #         code = 201
-    #         self.perform_create(serializer)
-    #         response_data = {'msg': '创建成功'}
-    #         headers = self.get_success_headers(response_data)
-    #         return Response(response_data, status=code, headers=headers)
-    #
-    #     code = 403
-    #     response_data = {'msg': '没有权限'}
-    #     headers = self.get_success_headers(response_data)
-    #     return Response(response_data, status=code, headers=headers)
 
 
 class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.UpdateModelMixin):
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
     authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
-    # serializer_class = OrderListSerializer
     pagination_class = OrderListPagination
 
     def get_permissions(self):
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
-        # if self.action == "create":
-        #     return OrderSerializer
         if self.action == "update":
             return OrderUpdateSeralizer
         return OrderListSerializer
@@ -693,10 +697,10 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
             return OrderInfo.objects.all().order_by('-id')
         if not self.request.user.is_proxy:
             userid_list = []
-            user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)
+            user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id).order_by('-id')
             for user in user_qset:
                 userid_list.append(user.id)
-            return OrderInfo.objects.filter(user_id__in=userid_list)
+            return OrderInfo.objects.filter(user_id__in=userid_list).order_by('-id')
 
     def update(self, request, *args, **kwargs):
         user = self.request.user
@@ -720,7 +724,6 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
             id = '1'
             userid_list = ['1']
         if id in userid_list:
-            # order_obj = self.get_object()
             if user.is_superuser or not user.is_proxy:
                 if order_obj.pay_status in ['NOTICE_FAIL', 'TRADE_CLOSE']:
                     user_queryset = UserProfile.objects.filter(id=order_obj.user_id)

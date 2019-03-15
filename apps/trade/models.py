@@ -32,7 +32,6 @@ class OrderInfo(models.Model):
         verbose_name = '订单管理'
         verbose_name_plural = verbose_name
 
-
 class WithDrawMoney(models.Model):
     user = models.ForeignKey(UserProfile, verbose_name='用户', on_delete=models.CASCADE)
     money = models.FloatField(verbose_name='提现金额')

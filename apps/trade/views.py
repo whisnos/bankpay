@@ -311,8 +311,7 @@ class GetPayView(views.APIView):
         m = hashlib.md5()
         m.update(new_temp.encode('utf-8'))
         my_key = m.hexdigest()
-        print(my_key, key, new_temp)
-        if my_key == my_key:
+        if key == my_key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -996,26 +995,6 @@ class ExportViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
         return Response(data=resp, status=code)
 
 
-# class Echo(object):
-#     """An object that implements just the write method of the file-like
-#     interface.
-#     """
-#     def write(self, value):
-#         """Write the value by returning it, instead of storing in a buffer."""
-#         return value
-#
-# def export_csv(request):
-#     """A view that streams a large CSV file."""
-#     # Generate a sequence of rows. The range is based on the maximum number of
-#     # rows that can be handled by a single sheet in most spreadsheet
-#     # applications.
-#     rows = (["Row {}".format(idx), str(idx)] for idx in range(20))
-#     pseudo_buffer = Echo()
-#     writer = csv.writer(pseudo_buffer)
-#     response = StreamingHttpResponse((writer.writerow(row) for row in rows),
-#                                      content_type="text/csv")
-#     response['Content-Disposition'] = 'attachment; filename="test.csv"'
-#     return response
 
 class QueryOrderView(views.APIView):
     def post(self, request):
@@ -1071,8 +1050,6 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             dele_type = serializer.validated_data.get('dele_type', '')
             safe_code = serializer.validated_data.get('safe_code', '')
             new_key = make_md5(safe_code)
-            print('5555', s_time, e_time, dele_type)
-            print('6666', new_key, user.safe_code)
             if new_key == user.safe_code:
                 if dele_type == 'order':
                     order_queryset = OrderInfo.objects.filter(add_time__range=(s_time, e_time))
@@ -1085,7 +1062,7 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
                 if order_queryset:
                     for obj in order_queryset:
                         print(obj.id)
-                        # obj.delete()
+                        obj.delete()
                 code = 200
                 return Response(data=resp, status=code)
             else:
@@ -1097,7 +1074,6 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             resp['msg'] = '没有权限'
             return Response(data=resp, status=code)
 
-        # return JsonResponse(serializer.errors, status=400)
 @csrf_exempt
 def test(request):
     return HttpResponse('success')
