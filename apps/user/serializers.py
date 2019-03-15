@@ -874,11 +874,6 @@ class LogInfoSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
 
-    # content = serializers.HiddenField(default='')
-    # operate_type = serializers.SerializerMethodField()
-    # def get_operate_type(self,obj):
-    #
-    #     return '1111'
     class Meta:
         model = OperateLog
         fields = '__all__'
