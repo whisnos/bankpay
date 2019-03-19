@@ -490,9 +490,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     return Response(data=resp, status=code)
                 # 加密顺序 money + bank_tel + auth_code
                 new_temp = str(money) + str(bank_tel) + str(auth_code)
-                m = hashlib.md5()
-                m.update(new_temp.encode('utf-8'))
-                my_key = m.hexdigest()
+                my_key = make_md5(new_temp)
                 if key == my_key:
                     order_obj.pay_status = 'TRADE_SUCCESS'
                     order_obj.pay_time = datetime.datetime.now()
@@ -518,6 +516,11 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                         resp['msg'] = '订单处理成功，无效notify_url，通知失败'
                         return Response(data=resp, status=400)
                     data_dict = {}
+                    # 加密顺序 uid + order_no + total_amount + auth_code
+                    new_temp = str(user_obj.uid) + str(order_obj.order_no) + str(order_obj.total_amount) + str(
+                        auth_code)
+                    my_key = make_md5(new_temp)
+                    data_dict['key'] = my_key
                     data_dict['pay_status'] = order_obj.pay_status
                     data_dict['add_time'] = str(order_obj.add_time)
                     data_dict['pay_time'] = str(order_obj.pay_time)
@@ -995,7 +998,6 @@ class ExportViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
         return Response(data=resp, status=code)
 
 
-
 class QueryOrderView(views.APIView):
     def post(self, request):
         processed_dict = {}
@@ -1073,6 +1075,7 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
             code = 403
             resp['msg'] = '没有权限'
             return Response(data=resp, status=code)
+
 
 @csrf_exempt
 def test(request):
