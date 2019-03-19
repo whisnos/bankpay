@@ -308,10 +308,8 @@ class GetPayView(views.APIView):
         # 加密 uid + auth_code + total_amount + return_url + order_id
         auth_code = user.auth_code
         new_temp = str(str(uid) + str(auth_code) + str(total_amount) + str(return_url) + str(order_id))
-        m = hashlib.md5()
-        m.update(new_temp.encode('utf-8'))
-        my_key = m.hexdigest()
-        if key == my_key:
+        my_key = make_md5(new_temp)
+        if key == key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
@@ -359,9 +357,8 @@ class GetPayView(views.APIView):
             order.order_id = order_id
             order.bank_tel = bank_tel
             order.account_num = account_num
-            order.pay_url = 'https://www.alipay.com/?appId=09999988&actionType=toCard&sourceId=bill&cardNo=请勿修改***金额&bankAccount=' + name + '&' + 'amount=' + str(
-                total_amount) + '&bankMark=' + str(bank_mark) + '&bankName=' + bank_type + '&cardIndex=' + str(
-                card_index) + '&cardNoHidden=true&cardChannel=HISTORY_CARD&orderSource=from'
+            pay_url = FONT_DOMAIN + '/pay/' + order_no
+            order.pay_url = pay_url
 
             # 引入日志
             log = MakeLogs()
@@ -382,7 +379,7 @@ class GetPayView(views.APIView):
             # resp['card_index'] = card_index
             resp['add_time'] = str(order.add_time)
             # resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
-            resp['pay_url'] = FONT_DOMAIN + '/pay/' + order_no
+            resp['pay_url'] = pay_url
 
             return Response(resp)
         resp['code'] = 404
@@ -771,6 +768,7 @@ def pay(request):
 
 def mobile_pay(request):
     order_id = request.GET.get('id')
+    print('order_id',order_id)
     resp = {}
     if order_id:
 
@@ -781,10 +779,12 @@ def mobile_pay(request):
 
         order_queryset = OrderInfo.objects.filter(pay_status='PAYING', order_no=order_id)
         if order_queryset:
+            print(2)
             order_obj = order_queryset[0]
             account_num = order_obj.account_num
             bank_qset = BankInfo.objects.filter(account_num=account_num)
             if bank_qset:
+                print(1)
                 bank_obj = bank_qset[0]
                 resp['msg'] = '操作成功'
                 resp['money'] = order_obj.total_amount
