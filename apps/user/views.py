@@ -48,18 +48,18 @@ def log_in(func):
 # @log_in
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
-        if request.META.get('HTTP_X_FORWARDED_FOR', ''):
+        '''if request.META.get('HTTP_X_FORWARDED_FOR', ''):
             print('HTTP_X_FORWARDED_FOR')
             ip = request.META.get('HTTP_X_FORWARDED_FOR', '')
         else:
             print('REMOTE_ADDR')
-            ip = request.META.get('REMOTE_ADDR', '')
+            ip = request.META.get('REMOTE_ADDR', '')'''
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
             if user.level:
                 if user.check_password(password):
                     # 引入日志
-                    content = '用户：' + str(user.username) + ' 登录ip为：' + str(ip)
+                    content = '用户：' + str(user.username) + ' 登录ip为：' + str('127.0.0.1')
                     log_obj = OperateLog()
                     log_obj.operate_type = '0'
                     log_obj.content = content
