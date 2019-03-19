@@ -139,5 +139,5 @@ AUTHENTICATION_BACKENDS = (
 # 订单超时 关闭 时间
 CLOSE_TIME = 10
 # 前端域名
-FONT_DOMAIN = 'https://www.cfpay.cc'
+FONT_DOMAIN = 'https://www.bfpay.cc'
 
