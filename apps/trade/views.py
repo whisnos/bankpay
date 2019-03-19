@@ -309,7 +309,7 @@ class GetPayView(views.APIView):
         auth_code = user.auth_code
         new_temp = str(str(uid) + str(auth_code) + str(total_amount) + str(return_url) + str(order_id))
         my_key = make_md5(new_temp)
-        if key == key:
+        if key == my_key:
             short_code = make_short_code(8)
             order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
                                                             userid=user.id, randstr=short_code)
