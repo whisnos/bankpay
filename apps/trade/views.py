@@ -834,6 +834,10 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             get_userid = self.request.data.get('id', '')
+            if not get_userid:
+                code = 400
+                resp['msg'] = 'id不符，创建失败'
+                return Response(resp, status=code)
             is_active = serializer.validated_data.get('is_active', 'False')
             user_queryset = UserProfile.objects.filter(id=get_userid, is_proxy=False)
             if user_queryset:
@@ -859,7 +863,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             instance.login_token = make_login_token()
             instance.is_active = is_active
             instance.save()
-            code = 200
+            code = 201
             resp['msg'] = '创建成功'
             return Response(resp, status=code)
         code = 403
@@ -1076,4 +1080,5 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
 
 @csrf_exempt
 def test(request):
+    print('接收到的信息',request.body)
     return HttpResponse('success')
