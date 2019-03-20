@@ -48,6 +48,20 @@ def log_in(func):
 # @log_in
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
+        '''if request.META.get('HTTP_X_FORWARDED_FOR', ''):
+            print('HTTP_X_FORWARDED_FOR')
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        else:
+            print('REMOTE_ADDR')
+            ip = request.META.get('REMOTE_ADDR', '')
+        '''
+        # print('request',dir(self))
+        # if request.META.get('HTTP_X_FORWARDED_FOR', ''):
+        #     print('HTTP_X_FORWARDED_FOR')
+        #     ip = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        # else:
+        #     ip = request.META.get('REMOTE_ADDR', '')
+        #     print('REMOTE_ADDR',ip)
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
             if user.level:

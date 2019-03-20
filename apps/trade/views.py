@@ -18,7 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 
-from pay.settings import FONT_DOMAIN, CLOSE_TIME
+from pay.settings import FONT_DOMAIN, CLOSE_TIME, SECRET_VERIFY
 from trade.filters import WithDrawFilter, OrdersFilter, BankFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
@@ -27,6 +27,7 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 # from user.views import MyThrottle
+from utils.make_class import ChooseChannel
 from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
 from utils.permissions import IsOwnerOrReadOnly, MakeLogs
 
@@ -289,6 +290,8 @@ class GetPayView(views.APIView):
         order_id = processed_dict.get('order_id', '')
         key = processed_dict.get('key', '')
         return_url = processed_dict.get('return_url', '')
+        channel = processed_dict.get('channel', '')
+        # channel=ChooseChannel(channel).make_choose()
         user_queryset = UserProfile.objects.filter(uid=uid)
         if not user_queryset:
             resp['msg'] = 'uid或者auth_code错误，请重试~~'
@@ -302,6 +305,9 @@ class GetPayView(views.APIView):
             return Response(resp, status=404)
         if not return_url:
             resp['msg'] = '请填写正确跳转url~~'
+            return Response(resp, status=404)
+        if channel != 'atb':
+            resp['msg'] = '请填写正确通道名称~~'
             return Response(resp, status=404)
         # 识别出 用户
         user = user_queryset[0]
@@ -331,13 +337,8 @@ class GetPayView(views.APIView):
                     order_queryset = OrderInfo.objects.filter(pay_status='PAYING', total_amount=total_amount,
                                                               bank_tel=bank.bank_tel)
                     if not order_queryset:
-                        name = bank.name
                         account_num = bank.account_num
-                        bank_type = bank.bank_type
-                        open_bank = bank.open_bank
                         bank_tel = bank.bank_tel
-                        bank_mark = bank.bank_mark
-                        card_index = bank.card_index
                         break
                     else:
                         continue
@@ -346,6 +347,8 @@ class GetPayView(views.APIView):
                         Decimal('0.00'))
                 else:
                     break
+
+            # channel=ChooseChannel(channel,user.id,order_no,total_amount,user_msg,order_id,bank_tel,account_num).make_choose()
 
             print('total_amount', total_amount)
             order = OrderInfo()
@@ -359,26 +362,21 @@ class GetPayView(views.APIView):
             order.account_num = account_num
             pay_url = FONT_DOMAIN + '/pay/' + order_no
             order.pay_url = pay_url
+            order.receive_way = '0'
+            order.save()
 
             # 引入日志
             log = MakeLogs()
             content = '用户：' + str(user.username) + ' 创建订单_ ' + str(order_no) + '  金额 ' + str(total_amount) + ' 元'
             log.add_logs('1', content, user.id)
 
-            order.save()
             resp['msg'] = '创建成功'
             resp['code'] = 200
-            # resp['name'] = name
-            # resp['account_num'] = account_num
             resp['total_amount'] = total_amount
             resp['order_no'] = order_no
             resp['order_id'] = order_id
-            # resp['bank_type'] = bank_type
-            # resp['open_bank'] = open_bank
-            # resp['bank_mark'] = bank_mark
-            # resp['card_index'] = card_index
             resp['add_time'] = str(order.add_time)
-            # resp['pay_url'] = 'https://' + request.META['HTTP_HOST'] + '/pay/?id=' + order_no
+            resp['channel'] = channel
             resp['pay_url'] = pay_url
 
             return Response(resp)
@@ -485,8 +483,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     resp['msg'] = '存在多笔订单，需手动处理'
                     code = 404
                     return Response(data=resp, status=code)
-                # 加密顺序 money + bank_tel + auth_code
-                new_temp = str(money) + str(bank_tel) + str(auth_code)
+                # 加密顺序 money + bank_tel + auth_code + SECRET_VERIFY
+                new_temp = str(money) + str(bank_tel) + str(auth_code) + SECRET_VERIFY
                 my_key = make_md5(new_temp)
                 if key == my_key:
                     order_obj.pay_status = 'TRADE_SUCCESS'
@@ -512,20 +510,18 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                         order_obj.save()
                         resp['msg'] = '订单处理成功，无效notify_url，通知失败'
                         return Response(data=resp, status=400)
-                    data_dict = {}
                     # 加密顺序 uid + order_no + total_amount + auth_code
                     new_temp = str(user_obj.uid) + str(order_obj.order_no) + str(order_obj.total_amount) + str(
                         auth_code)
                     my_key = make_md5(new_temp)
-                    data_dict['key'] = my_key
-                    data_dict['pay_status'] = order_obj.pay_status
-                    data_dict['add_time'] = str(order_obj.add_time)
-                    data_dict['pay_time'] = str(order_obj.pay_time)
-                    data_dict['total_amount'] = str(order_obj.total_amount)
-                    data_dict['order_id'] = order_obj.order_id
-                    data_dict['order_no'] = order_obj.order_no
-                    data_dict['user_msg'] = order_obj.user_msg
-                    resp['data'] = data_dict
+                    resp['key'] = my_key
+                    resp['pay_status'] = order_obj.pay_status
+                    resp['add_time'] = str(order_obj.add_time)
+                    resp['pay_time'] = str(order_obj.pay_time)
+                    resp['total_amount'] = str(order_obj.total_amount)
+                    resp['order_id'] = order_obj.order_id
+                    resp['order_no'] = order_obj.order_no
+                    resp['user_msg'] = order_obj.user_msg
                     r = json.dumps(resp)
                     headers = {'Content-Type': 'application/json'}
                     try:
@@ -768,7 +764,7 @@ def pay(request):
 
 def mobile_pay(request):
     order_id = request.GET.get('id')
-    print('order_id',order_id)
+    print('order_id', order_id)
     resp = {}
     if order_id:
 
@@ -1021,6 +1017,7 @@ class QueryOrderView(views.APIView):
                 resp['order_no'] = order.order_no
                 resp['order_id'] = order.order_id
                 resp['pay_time'] = order.pay_time
+                resp['channel'] = eval('order.get_receive_way_display()') # eval('obj.get_receive_way_display()')
                 return Response(resp)
         return Response(resp)
 

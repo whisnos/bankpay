@@ -141,3 +141,5 @@ CLOSE_TIME = 10
 # 前端域名
 FONT_DOMAIN = 'https://www.bfpay.cc'
 
+# 验证动态key
+SECRET_VERIFY = '@#$@!bfpay#(&'

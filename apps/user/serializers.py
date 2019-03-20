@@ -62,10 +62,9 @@ class RegisterUserSerializer(serializers.ModelSerializer):
 
             user.level = 2
             user.save()
-
             # 引入日志
             content = '用户：' + str(user_up.username) + ' 创建用户_' + str(user.username)
-            log.add_logs('3', content, user_up.user.id)
+            log.add_logs('3', content, user_up.id)
             return user
         if not user_up.is_proxy:
             del validated_data['password2']
@@ -505,7 +504,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(label='是否激活', required=False)
     service_rate = serializers.CharField(read_only=True)
     proxy_name = serializers.SerializerMethodField(label='所属代理', read_only=True, help_text='所属代理')
-
+    level = serializers.CharField(read_only=True,required=False)
     def get_proxy_name(self, obj):
         user_query = UserProfile.objects.filter(id=obj.proxy_id)
         if user_query:
@@ -798,7 +797,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['id', 'username', 'proxy_name', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy',
-                  'is_active',
+                  'is_active','level',
                   'service_rate', 'add_time', 'all_total_num', 'all_success_num', 'all_rate', 'all_money_all',
                   'all_money_success',
                   'proxys', 'banks', 'minus_money', 'add_money', 'hour_total_num',

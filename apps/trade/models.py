@@ -13,6 +13,9 @@ class OrderInfo(models.Model):
         ('TRADE_CLOSE', '支付关闭'),
         ('NOTICE_FAIL', '通知失败'),
     }
+    RECEIVE_TYPE={
+        ('0', 'atb'),
+    }
     user = models.ForeignKey(UserProfile, verbose_name='用户', on_delete=models.CASCADE)
     pay_status = models.CharField(default='PAYING', max_length=30, choices=PAY_STATUS, verbose_name='订单状态')
     total_amount = models.DecimalField(verbose_name='总金额', max_digits=7, decimal_places=2)
@@ -24,7 +27,9 @@ class OrderInfo(models.Model):
     bank_tel = models.CharField(max_length=15, null=True, blank=True, verbose_name='银行电话')
     account_num = models.CharField(max_length=32, null=True, blank=True, verbose_name='银行卡号')
     pay_url = models.CharField(max_length=300, null=True, blank=True, verbose_name='支付链接')
-
+    # 支付通道
+    receive_way = models.CharField(max_length=20, choices=RECEIVE_TYPE,
+                                   verbose_name='支付通道', default='0')
     def __str__(self):
         return str(self.order_no)
 
