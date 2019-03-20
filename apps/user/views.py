@@ -48,24 +48,10 @@ def log_in(func):
 # @log_in
 class CustomModelBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, type=None, **kwargs):
-        '''if request.META.get('HTTP_X_FORWARDED_FOR', ''):
-            print('HTTP_X_FORWARDED_FOR')
-            ip = request.META.get('HTTP_X_FORWARDED_FOR', '')
-        else:
-            print('REMOTE_ADDR')
-            ip = request.META.get('REMOTE_ADDR', '')'''
         user = User.objects.filter(username=username).first() or DeviceName.objects.filter(username=username).first()
         try:
             if user.level:
                 if user.check_password(password):
-                    # 引入日志
-                    content = '用户：' + str(user.username) + ' 登录ip为：' + str('127.0.0.1')
-                    log_obj = OperateLog()
-                    log_obj.operate_type = '0'
-                    log_obj.content = content
-                    log_obj.user_id = user.id
-                    log_obj.save()
-                    print('用户登录成功')
                     return user
                 else:
                     print(666)
@@ -77,14 +63,6 @@ class CustomModelBackend(ModelBackend):
                     print('设备登录成功',user.id)
                     userid = user.user_id
                     user1 = User.objects.get(id=userid)
-                    # 引入日志
-                    # content = '设备：' + str(user.username) + ' 登录ip为：' + str(ip)
-                    # log_obj = OperateLog()
-                    # log_obj.operate_type = '0'
-                    # log_obj.content = content
-                    # log_obj.user_id = user.id
-                    # log_obj.save()
-                    # print('设备登录成功')
                     return user1
                 return None
             except Exception as e:
@@ -227,8 +205,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         safe_code2 = self.request.data.get('safe_code2', '')
         proxy_id = self.request.data.get('proxy_id', '')
         service_rate = self.request.data.get('service_rate', '')
+        ramark_info = self.request.data.get('remark_info', '无备注！')
 
-        print('self.request.user', self.request.user)
+        print('ramark_info', ramark_info)
         if self.request.user.is_superuser:
             if get_proxyid:
                 user_queryset = UserProfile.objects.filter(id=get_proxyid)
@@ -241,16 +220,20 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
                         # 加日志
+                        if not ramark_info:
+                            ramark_info='无备注！'
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元'
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。'+' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                             # 加日志
+                            if not ramark_info:
+                                ramark_info = '无备注！'
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元'
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。'+' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
@@ -368,16 +351,20 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(add_money))
                         resp['msg'].append('加款成功')
                         # 加日志
+                        if not ramark_info:
+                            ramark_info='无备注！'
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元'
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。'+' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                             # 加日志
+                            if not ramark_info:
+                                ramark_info = '无备注！'
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元'
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。'+' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
