@@ -27,7 +27,7 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName
 # from user.views import MyThrottle
-from utils.make_class import ChooseChannel
+# from utils.make_class import ChooseChannel
 from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
 from utils.permissions import IsOwnerOrReadOnly, MakeLogs
 
