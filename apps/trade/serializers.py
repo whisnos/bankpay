@@ -29,7 +29,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderUpdateSeralizer(serializers.ModelSerializer):
-    id = serializers.IntegerField(write_only=True,required=True)
+    id = serializers.IntegerField(write_only=True, required=True)
+
     class Meta:
         model = OrderInfo
         fields = ['id']
@@ -210,7 +211,8 @@ class WithDrawSerializer(serializers.ModelSerializer):
         model = WithDrawMoney
         fields = ['id', 'user', 'receive_time', 'add_time', 'money', 'receive_way', 'bank_type', 'open_bank',
                   'user_msg',
-                  'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money','remark_info']
+                  'receive_account', 'full_name', 'withdraw_no', 'time_rate', 'withdraw_status', 'real_money',
+                  'remark_info']
 
 
 class WithDrawCreateSerializer(serializers.ModelSerializer):
@@ -227,8 +229,9 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         user = self.context['request'].user
         user_money = user.total_money
-        if not re.match(r'(^[1-4]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^[0-9]\.[0-9]([0-9])?$)|(^[1-5]([0-9]{1,3})?(\.[0-9]{1,2})?$)',
-                        str(attrs['money'])):
+        if not re.match(
+                r'(^[1-4]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^[0-9]\.[0-9]([0-9])?$)|(^[1-5]([0-9]{1,3})?(\.[0-9]{1,2})?$)',
+                str(attrs['money'])):
             raise serializers.ValidationError('金额输入异常')
         if attrs['money'] > user_money or attrs['money'] == 0:
             raise serializers.ValidationError('金额输入异常')
@@ -364,7 +367,6 @@ class RegisterDeviceSerializer(serializers.ModelSerializer):
 
 
 class UpdateDeviceSerializer(serializers.ModelSerializer):
-    user=serializers.HiddenField(default=serializers.CurrentUserDefault())
     add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
     auth_code = serializers.CharField(label='识别码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
@@ -372,33 +374,15 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     login_token = serializers.CharField(label='登录码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
     ], help_text='用户登录码')
-    # username = serializers.CharField(label='设备名', required=False, min_length=5, max_length=20, allow_blank=False,
-    #                                  validators=[
-    #                                      UniqueValidator(queryset=UserProfile.objects.all(), message='设备名不能重复')
-    #                                  ], help_text='设备名')
     username = serializers.CharField(label='设备名', read_only=True)
-    is_active = serializers.CharField(label='是否激活', required=False)
+    is_active = serializers.BooleanField(label='是否激活', required=False)
+    user_id = serializers.CharField(required=False)
+    user = serializers.SerializerMethodField(label='绑定的用户', required=False)
 
-    def validate_is_active(self, obj):
-        if str(obj) not in ['0', '1']:
-            raise serializers.ValidationError('传值错误')
+    def get_user(self, obj):
+        userqueryset = UserProfile.objects.filter(id=obj.user_id)
+        obj = userqueryset[0].username
         return obj
-
-    # def validate_username(self, obj):
-    #     device_queryset = DeviceName.objects.filter(username=obj)
-    #     if device_queryset:
-    #         raise serializers.ValidationError('用户名已存在')
-    #     return obj
-
-    # def validate_auth_code(self, obj):
-    #     if obj:
-    #         obj = make_auth_code()
-    #     return obj
-    #
-    # def validate_login_token(self, obj):
-    #     if obj:
-    #         obj = make_login_token()
-    #     return obj
 
     class Meta:
         model = DeviceName
@@ -412,9 +396,9 @@ class ReleaseSerializer(serializers.Serializer):
     safe_code = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        s_time=attrs.get('s_time')
-        e_time=attrs.get('e_time')
-        dele_type=attrs.get('dele_type')
+        s_time = attrs.get('s_time')
+        e_time = attrs.get('e_time')
+        dele_type = attrs.get('dele_type')
         if s_time:
             if not re.match(r'(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2})', str(s_time)):
                 raise serializers.ValidationError('时间格式错误，请重新输入')
@@ -424,4 +408,3 @@ class ReleaseSerializer(serializers.Serializer):
         if str(dele_type) not in ['order', 'money']:
             raise serializers.ValidationError('传值错误')
         return attrs
-

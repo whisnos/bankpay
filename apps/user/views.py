@@ -72,9 +72,9 @@ class CustomModelBackend(ModelBackend):
                     return None
         except Exception as e:
             try:
-                print(user.login_token,password)
+                print(user.login_token, password)
                 if user.login_token == password:
-                    print('设备登录成功',user.id)
+                    print('设备登录成功', user.id)
                     userid = user.user_id
                     user1 = User.objects.get(id=userid)
                     return user1
@@ -235,9 +235,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         resp['msg'].append('加款成功')
                         # 加日志
                         if not ramark_info:
-                            ramark_info='无备注！'
+                            ramark_info = '无备注！'
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。'+' 备注：' + str(ramark_info)
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。' + ' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -247,7 +247,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             if not ramark_info:
                                 ramark_info = '无备注！'
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。'+' 备注：' + str(ramark_info)
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。' + ' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
@@ -289,7 +289,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(user.username) + ' 原费率_' + str(
                             old_c) + ' 改为_' + str(service_rate)
                         log.add_logs('3', content, self.request.user.id)
-
+                    if notify_url:
+                        user.notify_url = notify_url
+                        resp['msg'].append('回调修改成功')
                     if proxy_id:
                         user_proxy = UserProfile.objects.filter(id=proxy_id, is_proxy=False, is_active=True)
                         if user_proxy:
@@ -366,9 +368,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         resp['msg'].append('加款成功')
                         # 加日志
                         if not ramark_info:
-                            ramark_info='无备注！'
+                            ramark_info = '无备注！'
                         content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。'+' 备注：' + str(ramark_info)
+                            user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。' + ' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
                         if Decimal(minus_money) < Decimal(user.total_money):
@@ -378,7 +380,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             if not ramark_info:
                                 ramark_info = '无备注！'
                             content = '用户：' + str(self.request.user.username) + ' 对 ' + str(
-                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。'+' 备注：' + str(ramark_info)
+                                user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。' + ' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
                             # code = 404
@@ -655,11 +657,12 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
         if self.request.user.is_superuser:
             return OperateLog.objects.all().order_by('-id')
         if not self.request.user.is_proxy:
-            userid_list=[]
+            userid_list = []
             user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)
             for users in user_qset:
                 userid_list.append(users.id)
-            return OperateLog.objects.filter(Q(user_id__in=userid_list)|Q(user_id=self.request.user.id)).order_by('-add_time')
+            return OperateLog.objects.filter(Q(user_id__in=userid_list) | Q(user_id=self.request.user.id)).order_by(
+                '-add_time')
 
     def get_permissions(self):
         if self.action == 'retrieve':
@@ -716,7 +719,7 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
         id = self.request.data.get('id', '')
         order_queryset = OrderInfo.objects.filter(id=id)
         if order_queryset:
-            order_obj=order_queryset[0]
+            order_obj = order_queryset[0]
             id = order_obj.user_id
         else:
             resp['msg'] = '订单不存在'
@@ -726,7 +729,10 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
             userid_list = ['1']
         if id in userid_list:
             if user.is_superuser or not user.is_proxy:
+
                 if order_obj.pay_status in ['NOTICE_FAIL', 'TRADE_CLOSE']:
+                    # 引入日志
+                    log = MakeLogs()
                     user_queryset = UserProfile.objects.filter(id=order_obj.user_id)
                     if user_queryset:
                         order_user = user_queryset[0]
@@ -737,15 +743,13 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
                             resp['msg'] = '订单处理成功，无效notify_url，通知失败'
                             return Response(data=resp, status=400)
 
-                        data_dict = {}
-                        data_dict['pay_status'] = order_obj.pay_status
-                        data_dict['add_time'] = str(order_obj.add_time)
-                        data_dict['pay_time'] = str(order_obj.pay_time)
-                        data_dict['total_amount'] = str(order_obj.total_amount)
-                        data_dict['order_id'] = order_obj.order_id
-                        data_dict['order_no'] = order_obj.order_no
-                        data_dict['user_msg'] = order_obj.user_msg
-                        resp['data'] = data_dict
+                        resp['pay_status'] = order_obj.pay_status
+                        resp['add_time'] = str(order_obj.add_time)
+                        resp['pay_time'] = str(order_obj.pay_time)
+                        resp['total_amount'] = str(order_obj.total_amount)
+                        resp['order_id'] = order_obj.order_id
+                        resp['order_no'] = order_obj.order_no
+                        resp['user_msg'] = order_obj.user_msg
                         r = json.dumps(resp)
                         headers = {'Content-Type': 'application/json'}
 
@@ -756,49 +760,98 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
                                     resp['msg'] = '回调成功，成功更改订单状态!'
                                     order_obj.pay_status = 'TRADE_SUCCESS'
                                     order_obj.save()
+                                    # 加日志
+                                    content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                        order_obj.order_no) + ' 强行回调成功'
+                                    log.add_logs('1', content, self.request.user.id)
                                     return Response(data=resp, status=200)
                                 else:
+                                    # 加日志
+                                    content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                        order_obj.order_no) + ' 强行回调失败，请检查回调地址'
+                                    log.add_logs('1', content, self.request.user.id)
                                     resp['msg'] = '回调处理，未修改状态，通知失败'
-                                    return Response(data=resp, status=200)
+                                    return Response(data=resp, status=400)
                             except Exception:
-                                resp['msg'] = '回调异常，订单状态未失败'
+                                # 加日志
+                                content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                    order_obj.order_no) + ' 强行回调失败，请检查回调地址'
+                                log.add_logs('1', content, self.request.user.id)
+                                resp['msg'] = '回调异常，订单状态未修改'
                                 return Response(data=resp, status=400)
                         if order_obj.pay_status == 'TRADE_CLOSE':
                             try:
                                 res = requests.post(notify_url, headers=headers, data=r, timeout=10, stream=True)
+                                # 更新用户收款
+                                order_user.total_money = '%.2f' % (
+                                        Decimal(order_user.total_money) + Decimal(order_obj.total_amount))
+                                order_user.save()
+
+                                account_num = order_obj.account_num
+                                bank_queryset = BankInfo.objects.filter(account_num=account_num)
+                                if bank_queryset:
+                                    bank_obj = bank_queryset[0]
+
+                                    # 更新商家存钱
+                                    bank_obj.total_money = '%.2f' % (
+                                            Decimal(bank_obj.total_money) + Decimal(order_obj.total_amount))
+                                    bank_obj.last_time = datetime.datetime.now()
+                                    bank_obj.save()
+
+                                else:
+                                    resp['mark'] = '不存在有效银行卡，金额未添加到银行卡'
+
                                 if res.text == 'success':
-
-                                    # 更新用户收款
-                                    order_user.total_money = '%.2f' % (
-                                            Decimal(order_user.total_money) + Decimal(order_obj.total_amount))
-                                    order_user.save()
-
-                                    account_num = order_obj.account_num
-                                    bank_queryset = BankInfo.objects.filter(account_num=account_num)
-                                    if bank_queryset:
-                                        bank_obj = bank_queryset[0]
-
-                                        # 更新商家存钱
-                                        bank_obj.total_money = '%.2f' % (
-                                                Decimal(bank_obj.total_money) + Decimal(order_obj.total_amount))
-                                        bank_obj.last_time = datetime.datetime.now()
-                                        bank_obj.save()
-
-                                    else:
-                                        resp['mark'] = '不存在有效银行卡，金额未添加到银行卡'
-                                    resp['data']['pay_status']='TRADE_SUCCESS'
-                                    resp['data']['pay_time'] = datetime.datetime.now()
+                                    resp['pay_status'] = 'TRADE_SUCCESS'
+                                    resp['pay_time'] = datetime.datetime.now()
                                     order_obj.pay_status = 'TRADE_SUCCESS'
                                     order_obj.save()
+                                    # 加日志
+                                    content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                        order_obj.order_no) + ' 强行回调成功'
+                                    log.add_logs('1', content, self.request.user.id)
+
                                     resp['msg'] = '回调成功，已自动加款，金额:' + str(order_obj.total_amount)
                                     return Response(data=resp, status=200)
                                 else:
-                                    resp['msg'] = '回调处理完成，一样通知失败'
+                                    resp['pay_status'] = 'NOTICE_FAIL'
+                                    resp['pay_time'] = order_obj.pay_time = datetime.datetime.now()
+                                    order_obj.pay_status = 'NOTICE_FAIL'
+                                    order_obj.save()
+                                    # 日志
+                                    content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                        order_obj.order_no) + ' 强行回调失败，请检查回调地址'
+                                    log.add_logs('1', content, self.request.user.id)
+                                    resp['msg'] = '回调处理，响应异常，通知失败'
                                     return Response(data=resp, status=400)
                             except Exception:
+                                resp['pay_status'] = 'NOTICE_FAIL'
+                                resp['pay_time'] = order_obj.pay_time = datetime.datetime.now()
                                 order_obj.pay_status = 'NOTICE_FAIL'
                                 order_obj.save()
-                                resp['msg'] = '回调处理，通知失败，未加款'
+                                # 更新用户收款
+                                order_user.total_money = '%.2f' % (
+                                        Decimal(order_user.total_money) + Decimal(order_obj.total_amount))
+                                order_user.save()
+
+                                account_num = order_obj.account_num
+                                bank_queryset = BankInfo.objects.filter(account_num=account_num)
+                                if bank_queryset:
+                                    bank_obj = bank_queryset[0]
+
+                                    # 更新商家存钱
+                                    bank_obj.total_money = '%.2f' % (
+                                            Decimal(bank_obj.total_money) + Decimal(order_obj.total_amount))
+                                    bank_obj.last_time = datetime.datetime.now()
+                                    bank_obj.save()
+
+                                else:
+                                    resp['mark'] = '不存在有效银行卡，金额未添加到银行卡'
+                                # 日志
+                                content = '用户：' + str(self.request.user.username) + ' 对订单号: ' + str(
+                                    order_obj.order_no) + ' 强行回调失败，请检查回调地址'
+                                log.add_logs('1', content, self.request.user.id)
+                                resp['msg'] = '回调处理，加款成功金额:%s，通知失败' % (str(order_obj.total_amount))
                                 return Response(data=resp, status=400)
                 code = 400
                 resp['msg'] = '操作状态不对'
