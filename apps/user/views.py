@@ -653,9 +653,9 @@ class LogsViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
 
     def get_queryset(self):
         if self.request.user.is_proxy:
-            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-id')
+            return OperateLog.objects.filter(user_id=self.request.user.id).order_by('-add_time')
         if self.request.user.is_superuser:
-            return OperateLog.objects.all().order_by('-id')
+            return OperateLog.objects.all().order_by('-add_time')
         if not self.request.user.is_proxy:
             userid_list = []
             user_qset = UserProfile.objects.filter(proxy_id=self.request.user.id)

@@ -181,7 +181,7 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
 
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return BankInfo.objects.all().order_by('id')
+            return BankInfo.objects.all().order_by('-add_time')
         user = self.request.user
         if user:
             return BankInfo.objects.filter(user=self.request.user).order_by('-add_time')
@@ -822,7 +822,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
 
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return DeviceName.objects.all().order_by('id')
+            return DeviceName.objects.all().order_by('-add_time')
         user = self.request.user
         if not user.is_proxy:
             return DeviceName.objects.filter(user=user).order_by('-add_time')
