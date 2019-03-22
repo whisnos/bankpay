@@ -107,7 +107,7 @@ class OrderViewset(XLSXFileMixin, mixins.ListModelMixin, mixins.CreateModelMixin
             pay_status='TRADE_CLOSE')
 
         if user.is_superuser:
-            return OrderInfo.objects.all().order_by('id')
+            return OrderInfo.objects.all().order_by('-add_time')
         if not user.is_proxy:
             user_list = []
             user_queryset = UserProfile.objects.filter(proxy_id=user.id)
