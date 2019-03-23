@@ -711,9 +711,12 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
             #     resp['msg'].append('操作有误')
             if remark_info:
                 print('remark_info', remark_info)
-                withdraw_obj.remark_info = remark_info
+                if str(remark_info) == '1':
+                    withdraw_obj.remark_info = ''
+                else:
+                    withdraw_obj.remark_info = remark_info
                 code = 200
-                resp['msg'].append('备注添加成功')
+                resp['msg'].append('备注修改成功')
             withdraw_obj.save()
         else:
             code = 403
@@ -863,7 +866,7 @@ class DevicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Ge
             instance.login_token = make_login_token()
             instance.is_active = is_active
             instance.save()
-            code = 201
+            code = 200
             resp['msg'] = '创建成功'
             return Response(resp, status=code)
         code = 403

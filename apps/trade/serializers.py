@@ -45,7 +45,7 @@ class BankinfoSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(label='手机号')
     devices_name = serializers.SerializerMethodField(read_only=True)
     devices = serializers.CharField(label='所属设备')
-
+    user_id = serializers.IntegerField(read_only=True)
     # is_active = serializers.CharField(label='是否激活', required=False)
 
     def get_devices_name(self, obj):
@@ -100,7 +100,7 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     name = serializers.CharField(label='姓名', required=False)
     mobile = serializers.CharField(label='手机', required=False)
     devices = serializers.CharField(label='所属设备', required=False)
-
+    user_id = serializers.IntegerField(required=False)
     def validate_mobile(self, data):
         if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
             raise serializers.ValidationError('手机号格式错误')
@@ -139,6 +139,7 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankInfo
         fields = '__all__'
+        # exclude = ('user_id',)
 
 
 class OrderListSerializer(serializers.ModelSerializer):
