@@ -148,12 +148,12 @@ class OrderListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.SerializerMethodField(read_only=True)
     total_amount = serializers.FloatField(read_only=True)
-
+    account_num =serializers.CharField(read_only=True)
     def get_username(self, obj):
         user_queryset = UserProfile.objects.filter(id=obj.user_id)
         if user_queryset:
             return user_queryset[0].username
-        return
+        return '暂无匹配'
 
     def get_user_id(self, obj):
         return str(obj.user_id)
@@ -161,7 +161,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderInfo
         fields = ['id', 'user_id', 'username', 'pay_status', 'total_amount', 'order_no', 'pay_time', 'add_time',
-                  'order_id']
+                  'order_id','account_num']
 
 
 class GetPaySerializer(serializers.Serializer):
@@ -377,7 +377,7 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     ], help_text='用户登录码')
     username = serializers.CharField(label='设备名', read_only=True)
     is_active = serializers.BooleanField(label='是否激活', required=False)
-    user_id = serializers.CharField(required=False)
+    user_id = serializers.IntegerField(required=False)
     user = serializers.SerializerMethodField(label='绑定的用户', required=False)
 
     def get_user(self, obj):
