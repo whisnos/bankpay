@@ -25,7 +25,7 @@ from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSeri
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
     UpdateDeviceSerializer, UpdateBankinfoSerializer, ReleaseSerializer
 from user.filters import DeviceFilter
-from user.models import BankInfo, UserProfile, DeviceName
+from user.models import BankInfo, UserProfile, DeviceName, OperateLog
 # from user.views import MyThrottle
 # from utils.make_class import ChooseChannel
 from utils.make_code import make_short_code, make_auth_code, make_login_token, make_md5, generate_order_no
@@ -1061,6 +1061,8 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
                     order_queryset = OrderInfo.objects.filter(add_time__range=(s_time, e_time))
                 elif dele_type == 'money':
                     order_queryset = WithDrawMoney.objects.filter(add_time__range=(s_time, e_time))
+                elif dele_type == 'log':
+                    order_queryset = OperateLog.objects.filter(add_time__range=(s_time, e_time))
                 else:
                     code = 400
                     resp['msg'] = '类型错误'

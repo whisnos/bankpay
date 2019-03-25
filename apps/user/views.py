@@ -208,6 +208,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         serializer.is_valid(raise_exception=True)
         password = self.request.data.get('password', '')
         password2 = self.request.data.get('password2', '')
+        operatepw = self.request.data.get('operatepw', '')
         notify_url = self.request.data.get('notify_url', '')
         get_proxyid = self.request.data.get('id', '')
         add_money = self.request.data.get('add_money', '')
@@ -240,7 +241,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。' + ' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
-                        if Decimal(minus_money) < Decimal(user.total_money):
+                        if Decimal(minus_money) <= Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                             # 加日志
@@ -250,7 +251,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                 user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。' + ' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
-                            # code = 404
+                            code = 400
                             resp['msg'].append('余额不足，扣款失败')
 
                     if password == password2:
@@ -264,13 +265,13 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     else:
                         resp['msg'].append('输入密码不一致')
 
-                    if safe_code == safe_code2:
-                        if password:
-                            print('admin修改用户操作密码中..........')
-                            user.safe_code = make_md5(safe_code)
-                            resp['msg'].append('操作密码修改成功')
-                    else:
-                        resp['msg'].append('操作输入密码不一致')
+                    # if safe_code == safe_code2:
+                    #     if password:
+                    #         print('admin修改用户操作密码中..........')
+                    #         user.safe_code = make_md5(safe_code)
+                    #         resp['msg'].append('操作密码修改成功')
+                    # else:
+                    #     resp['msg'].append('操作输入密码不一致')
 
                     if str(is_active):
                         if is_active == 'true':
@@ -292,6 +293,14 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     if notify_url:
                         user.notify_url = notify_url
                         resp['msg'].append('回调修改成功')
+                    if operatepw:
+                        print('operatepw',operatepw)
+                        user.safe_code = make_md5(operatepw)
+                        resp['msg'].append('操作密码修改成功')
+                    if auth_code:
+                        user.auth_code = make_auth_code()
+                        resp['msg'].append('秘钥修改成功')
+                        resp['auth_code'] = user.auth_code
                     if proxy_id:
                         user_proxy = UserProfile.objects.filter(id=proxy_id, is_proxy=False, is_active=True)
                         if user_proxy:
@@ -316,7 +325,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         else:
                             resp['msg'].append('调整失败，代理不存在')
 
-                    code = 200
+                    # code = 200
                     user.save()
 
                 else:
@@ -373,7 +382,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             user.username) + ' 加款 ' + ' 金额 ' + str(add_money) + ' 元。' + ' 备注：' + str(ramark_info)
                         log.add_logs('3', content, self.request.user.id)
                     if minus_money:
-                        if Decimal(minus_money) < Decimal(user.total_money):
+                        if Decimal(minus_money) <= Decimal(user.total_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                             # 加日志
@@ -383,7 +392,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                 user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。' + ' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                         else:
-                            # code = 404
+                            code = 404
                             resp['msg'].append('余额不足，扣款失败')
 
                     if password == password2:
@@ -431,7 +440,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                     else:
                         # code = 404
                         resp['msg'].append('操作输入密码不一致')
-                    code = 200
+                    # code = 200
                     user.save()
                 else:
                     code = 404

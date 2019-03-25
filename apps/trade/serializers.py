@@ -406,6 +406,6 @@ class ReleaseSerializer(serializers.Serializer):
         if e_time:
             if not re.match(r'(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2})', str(e_time)):
                 raise serializers.ValidationError('时间格式错误，请重新输入')
-        if str(dele_type) not in ['order', 'money']:
+        if str(dele_type) not in ['order', 'money','log']:
             raise serializers.ValidationError('传值错误')
         return attrs
