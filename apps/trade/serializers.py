@@ -1,4 +1,5 @@
 # 用的时候使用OrderSerializer和OrderDetailSerializer，
+import datetime
 import re
 import time
 
@@ -36,6 +37,206 @@ class OrderUpdateSeralizer(serializers.ModelSerializer):
         fields = ['id']
 
 
+class BankListinfoSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    add_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
+    total_money = serializers.CharField(read_only=True)
+    account_num = serializers.CharField(label='银行卡号')
+    mobile = serializers.CharField(label='手机号')
+    devices_name = serializers.SerializerMethodField(read_only=True)
+    devices = serializers.CharField(label='所属设备')
+    user_id = serializers.IntegerField(read_only=True)
+
+    # is_active = serializers.CharField(label='是否激活', required=False)
+
+    def get_devices_name(self, obj):
+        device_queryset = DeviceName.objects.filter(id=obj.devices_id)
+        if device_queryset:
+            return device_queryset[0].username
+        return '未找到相应设备'
+
+    def validate_mobile(self, data):
+        if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
+            raise serializers.ValidationError('手机号格式错误')
+        return data
+
+    # devices = serializers.ChoiceField(label='所属设备',choices='QUESTION_TYPES')
+
+    def validate_devices(self, obj):
+        if not re.match(r'^(\+)?[1-9][0-9]*$', obj):
+            raise serializers.ValidationError('格式错误')
+        device_queryset = DeviceName.objects.filter(id=obj)
+        if not device_queryset:
+            raise serializers.ValidationError('对应设备不存在')
+        obj = device_queryset[0]
+
+        return obj
+
+    def validate_account_num(self, data):
+        bank_queryset = BankInfo.objects.filter(account_num=data)
+        if bank_queryset:
+            raise serializers.ValidationError("银行卡已存在")
+        return data
+
+    # 小时成功收款总金额
+    hour_money_success = serializers.SerializerMethodField(read_only=True)
+
+    def get_hour_money_success(self, obj):
+        order_queryset = OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),account_num=obj.account_num,
+                                                  add_time__gte=datetime.datetime.now() - datetime.timedelta(
+                                                      hours=1)).aggregate(
+            total_amount=Sum('total_amount'))
+        if not order_queryset.get('total_amount', '0'):
+            return '0'
+        return order_queryset.get('total_amount', '0')
+
+    # 小时
+    # 小时 datetime.datetime.now()-datetime.timedelta(hours=1)
+    hour_total_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_hour_total_num(self, obj):
+        return OrderInfo.objects.filter(account_num=obj.account_num, add_time__gte=datetime.datetime.now() - datetime.timedelta(
+                                                      hours=1)).count()
+
+    # 小时 成功数
+    hour_success_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_hour_success_num(self, obj):
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                        account_num=obj.account_num, add_time__gte=datetime.datetime.now() - datetime.timedelta(
+                                                      hours=1)).count()
+
+    # 小时 成功率
+    hour_rate = serializers.SerializerMethodField(read_only=True)
+
+    def get_hour_rate(self, obj):
+        a = self.get_hour_success_num(obj)
+        b = self.get_hour_total_num(obj)
+        if b == 0 or a == 0:
+            return '0%'
+        return ('{:.2%}'.format(a / b))
+
+    # 今天成功收款总金额
+    today_money_success = serializers.SerializerMethodField(read_only=True)
+
+    def get_today_money_success(self, obj):
+        order_queryset = OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                                  account_num=obj.account_num,
+                                                  add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).aggregate(
+            total_amount=Sum('total_amount'))
+        if not order_queryset.get('total_amount', '0'):
+            return '0'
+        return order_queryset.get('total_amount', '0')
+
+    # 今天
+    # 今天 datetime.datetime.now()-datetime.timedelta(hours=1)
+    today_total_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_today_total_num(self, obj):
+        return OrderInfo.objects.filter(account_num=obj.account_num,
+                                        add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).count()
+
+    # 今天 成功数
+    today_success_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_today_success_num(self, obj):
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                        account_num=obj.account_num,
+                                        add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).count()
+
+    # 今天 成功率
+    today_rate = serializers.SerializerMethodField(read_only=True)
+
+    def get_today_rate(self, obj):
+        a = self.get_today_success_num(obj)
+        b = self.get_today_total_num(obj)
+        if b == 0 or a == 0:
+            return '0%'
+        return ('{:.2%}'.format(a / b))
+
+    # 昨天成功收款总金额
+    yesterday_money_success = serializers.SerializerMethodField(read_only=True)
+
+    def get_yesterday_money_success(self, obj):
+        order_queryset = OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                                  account_num=obj.account_num,
+                                                  add_time__range=(
+                                                      (datetime.datetime.now() - datetime.timedelta(days=1)).strftime(
+                                                          '%Y-%m-%d'),
+                                                      time.strftime('%Y-%m-%d', time.localtime(time.time())))).aggregate(
+            total_amount=Sum('total_amount'))
+        if not order_queryset.get('total_amount', '0'):
+            return '0'
+        return order_queryset.get('total_amount', '0')
+
+    # 昨天
+    # 昨天 datetime.datetime.now()-datetime.timedelta(hours=1)
+    yesterday_total_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_yesterday_total_num(self, obj):
+        return OrderInfo.objects.filter(account_num=obj.account_num,
+                                        add_time__range=(
+                                            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
+                                            time.strftime('%Y-%m-%d', time.localtime(time.time())))).count()
+
+    # 昨天 成功数
+    yesterday_success_num = serializers.SerializerMethodField(read_only=True)
+
+    def get_yesterday_success_num(self, obj):
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+                                        account_num=obj.account_num,
+                                        add_time__range=(
+                                            (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
+                                            time.strftime('%Y-%m-%d', time.localtime(time.time())))).count()
+
+    # 昨天 成功率
+    yesterday_rate = serializers.SerializerMethodField(read_only=True)
+
+    def get_yesterday_rate(self, obj):
+        a = self.get_yesterday_success_num(obj)
+        b = self.get_yesterday_total_num(obj)
+        if b == 0 or a == 0:
+            return '0%'
+        return ('{:.2%}'.format(a / b))
+    # # 全部
+    # all_money_success = serializers.SerializerMethodField(read_only=True)
+    #
+    # def get_all_money_success(self, obj):
+    #     order_queryset = OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+    #                                               account_num=obj.account_num).aggregate(
+    #         total_amount=Sum('total_amount'))
+    #     if not order_queryset.get('total_amount', '0'):
+    #         return '0'
+    #     return order_queryset.get('total_amount', '0')
+    # # 全部 datetime.datetime.now()-datetime.timedelta(hours=1)
+    # all_total_num = serializers.SerializerMethodField(read_only=True)
+    #
+    # def get_all_total_num(self, obj):
+    #     return OrderInfo.objects.filter(account_num=obj.account_num).count()
+    #
+    # # 全部 成功数
+    # all_success_num = serializers.SerializerMethodField(read_only=True)
+    #
+    # def get_all_success_num(self, obj):
+    #     return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
+    #                                     account_num=obj.account_num).count()
+    #
+    # # 全部 成功率
+    # all_rate = serializers.SerializerMethodField(read_only=True)
+    #
+    # def get_all_rate(self, obj):
+    #     a = self.get_all_success_num(obj)
+    #     b = self.get_all_total_num(obj)
+    #     if b == 0 or a == 0:
+    #         return '0%'
+    #     return ('{:.2%}'.format(a / b))
+
+    class Meta:
+        model = BankInfo
+        fields = '__all__'
+
+
 class BankinfoSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     last_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M')
@@ -46,6 +247,7 @@ class BankinfoSerializer(serializers.ModelSerializer):
     devices_name = serializers.SerializerMethodField(read_only=True)
     devices = serializers.CharField(label='所属设备')
     user_id = serializers.IntegerField(read_only=True)
+
     # is_active = serializers.CharField(label='是否激活', required=False)
 
     def get_devices_name(self, obj):
@@ -101,6 +303,7 @@ class UpdateBankinfoSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(label='手机', required=False)
     devices = serializers.CharField(label='所属设备', required=False)
     user_id = serializers.IntegerField(required=False)
+
     def validate_mobile(self, data):
         if not re.match(r'^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$', data):
             raise serializers.ValidationError('手机号格式错误')
@@ -148,7 +351,8 @@ class OrderListSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.SerializerMethodField(read_only=True)
     total_amount = serializers.FloatField(read_only=True)
-    account_num =serializers.CharField(read_only=True)
+    account_num = serializers.CharField(read_only=True)
+
     def get_username(self, obj):
         user_queryset = UserProfile.objects.filter(id=obj.user_id)
         if user_queryset:
@@ -161,7 +365,7 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderInfo
         fields = ['id', 'user_id', 'username', 'pay_status', 'total_amount', 'order_no', 'pay_time', 'add_time',
-                  'order_id','account_num']
+                  'order_id', 'account_num']
 
 
 class GetPaySerializer(serializers.Serializer):
@@ -404,6 +608,6 @@ class ReleaseSerializer(serializers.Serializer):
         if e_time:
             if not re.match(r'(\d{4}-\d{1,2}-\d{1,2}\s\d{1,2}:\d{1,2})', str(e_time)):
                 raise serializers.ValidationError('时间格式错误，请重新输入')
-        if str(dele_type) not in ['order', 'money','log']:
+        if str(dele_type) not in ['order', 'money', 'log']:
             raise serializers.ValidationError('传值错误')
         return attrs

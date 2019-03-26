@@ -38,10 +38,10 @@ class BankFilter(filters.FilterSet):
     name = filters.CharFilter(field_name="name", lookup_expr='icontains', help_text="名称查询")
     mobile = filters.CharFilter(field_name="mobile", lookup_expr='icontains', help_text="手机号查询")
     account_num = filters.CharFilter(field_name="account_num", lookup_expr='icontains', help_text="账号查询")
-
+    devices_id = filters.NumberFilter(field_name='devices_id', help_text="根据设备ID")
     class Meta:
         model = BankInfo
-        fields = ['name', 'mobile', 'account_num']
+        fields = ['name', 'mobile', 'account_num','devices_id']
 
 
 class LogFilter(filters.FilterSet):

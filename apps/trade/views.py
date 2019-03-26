@@ -23,7 +23,7 @@ from trade.filters import WithDrawFilter, OrdersFilter, BankFilter
 from trade.models import OrderInfo, WithDrawMoney
 from trade.serializers import OrderSerializer, OrderListSerializer, BankinfoSerializer, WithDrawSerializer, \
     WithDrawCreateSerializer, VerifyPaySerializer, OrderUpdateSeralizer, DeviceSerializer, RegisterDeviceSerializer, \
-    UpdateDeviceSerializer, UpdateBankinfoSerializer, ReleaseSerializer
+    UpdateDeviceSerializer, UpdateBankinfoSerializer, ReleaseSerializer, BankListinfoSerializer
 from user.filters import DeviceFilter
 from user.models import BankInfo, UserProfile, DeviceName, OperateLog
 # from user.views import MyThrottle
@@ -175,6 +175,8 @@ class BankViewset(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gener
             return BankinfoSerializer
         elif self.action == "update":
             return UpdateBankinfoSerializer
+        elif self.action == "list":
+            return BankListinfoSerializer
         return BankinfoSerializer
 
     # return []
