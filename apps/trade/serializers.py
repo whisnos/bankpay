@@ -372,9 +372,7 @@ class UpdateDeviceSerializer(serializers.ModelSerializer):
     auth_code = serializers.CharField(label='识别码', required=False, validators=[
         UniqueValidator(queryset=DeviceName.objects.all(), message='识别码不能重复')
     ], help_text='用户识别码')
-    login_token = serializers.CharField(label='登录码', required=False, validators=[
-        UniqueValidator(queryset=DeviceName.objects.all(), message='登录码不能重复')
-    ], help_text='用户登录码')
+    login_token = serializers.CharField(label='登录码', required=False, help_text='用户登录码')
     username = serializers.CharField(label='设备名', read_only=True)
     is_active = serializers.BooleanField(label='是否激活', required=False)
     user_id = serializers.IntegerField(required=False)
