@@ -496,6 +496,7 @@ class BankInfoSerializer(serializers.ModelSerializer):
         model = BankInfo
         fields = '__all__'
 
+
 class UserRetrieveSerializer(serializers.ModelSerializer):
     service_charge = serializers.SerializerMethodField(read_only=True)
 
@@ -503,9 +504,13 @@ class UserRetrieveSerializer(serializers.ModelSerializer):
         userid_list = self.make_userid_list(obj)
         if not userid_list:
             return '0'
-        with1 = WithDrawMoney.objects.filter(user_id__in=userid_list, withdraw_status='1',add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).aggregate(
+        with1 = WithDrawMoney.objects.filter(user_id__in=userid_list, withdraw_status='1',
+                                             add_time__gte=time.strftime('%Y-%m-%d',
+                                                                         time.localtime(time.time()))).aggregate(
             money=Sum('money'))
-        with2 = WithDrawMoney.objects.filter(user_id__in=userid_list, withdraw_status='1',add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).aggregate(
+        with2 = WithDrawMoney.objects.filter(user_id__in=userid_list, withdraw_status='1',
+                                             add_time__gte=time.strftime('%Y-%m-%d',
+                                                                         time.localtime(time.time()))).aggregate(
             real_money=Sum('real_money'))
         if not with1.get('money') or not with2.get('real_money'):
             return '0'
@@ -856,6 +861,8 @@ class UserRetrieveSerializer(serializers.ModelSerializer):
                   'yesterday_success_num', 'yesterday_rate', 'yesterday_money_all', 'yesterday_money_success',
                   'month_total_num',
                   'month_success_num', 'month_rate', 'month_money_all', 'month_money_success']
+
+
 class UserDetailSerializer(serializers.ModelSerializer):
     add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
     username = serializers.CharField(label='用户名', read_only=True, allow_blank=False, help_text='用户名')
@@ -896,8 +903,6 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if user_query:
             return user_query[0].username
         return obj.username
-
-
 
     def get_total_money(self, obj):
         userid_list = self.make_userid_list(obj)
@@ -1195,7 +1200,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['id', 'username', 'proxy_name', 'uid', 'auth_code', 'mobile', 'notify_url', 'total_money', 'is_proxy',
                   'is_active', 'level',
-                  'service_rate','add_time', 'all_total_num', 'all_success_num', 'all_rate', 'all_money_all',
+                  'service_rate', 'add_time', 'all_total_num', 'all_success_num', 'all_rate', 'all_money_all',
                   'all_money_success',
                   'proxys', 'banks', 'minus_money', 'add_money', 'hour_total_num',
                   'hour_success_num', 'hour_rate', 'hour_money_all', 'hour_money_success', 'today_total_num',
@@ -1203,6 +1208,38 @@ class UserDetailSerializer(serializers.ModelSerializer):
                   'yesterday_success_num', 'yesterday_rate', 'yesterday_money_all', 'yesterday_money_success',
                   'month_total_num',
                   'month_success_num', 'month_rate', 'month_money_all', 'month_money_success']
+
+
+class UserListDetailSerializer(serializers.ModelSerializer):
+    add_time = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
+    username = serializers.CharField(label='用户名', read_only=True, allow_blank=False, help_text='用户名')
+    uid = serializers.CharField(label='用户uid', read_only=True, allow_blank=False, help_text='用户uid')
+    mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
+    auth_code = serializers.CharField(label='用户授权码', read_only=True, allow_blank=False, help_text='用户授权码')
+    is_proxy = serializers.BooleanField(label='是否代理', read_only=True)
+    total_money = serializers.CharField(read_only=True)
+    add_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='加款', write_only=True,
+                                         required=False)
+    minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
+                                           required=False)
+    is_active = serializers.BooleanField(label='是否激活', required=False)
+    service_rate = serializers.CharField(read_only=True)
+    proxy_name = serializers.SerializerMethodField(label='所属代理', read_only=True, help_text='所属代理')
+    level = serializers.CharField(read_only=True, required=False)
+
+
+    def get_proxy_name(self, obj):
+        user_query = UserProfile.objects.filter(id=obj.proxy_id)
+        if user_query:
+            return user_query[0].username
+        return obj.username
+
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'username', 'proxy_name', 'total_money', 'uid', 'auth_code', 'mobile', 'notify_url', 'is_proxy',
+                  'is_active', 'level',
+                  'service_rate', 'add_time', 'minus_money', 'add_money']
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):

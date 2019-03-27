@@ -25,7 +25,7 @@ from trade.views import OrderListPagination
 from user.filters import UserFilter
 from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo, OperateLog, BankInfo
 from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer, \
-    LogInfoSerializer, LogListInfoSerializer, UserRetrieveSerializer
+    LogInfoSerializer, LogListInfoSerializer, UserRetrieveSerializer, UserListDetailSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code, make_md5
@@ -164,7 +164,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         if self.action == "create":
             return RegisterUserSerializer
         # elif self.action == "list":
-        #     return UserDetailSerializer
+        #     return UserListDetailSerializer
         elif self.action == "update":
             return UpdateUserSerializer
         return UserDetailSerializer
@@ -528,6 +528,29 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
             user.save()
         return Response(data=resp, status=code)
 
+class UserAccountsViewset(mixins.ListModelMixin, viewsets.GenericViewSet):
+    pagination_class = UserListPagination
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (JSONWebTokenAuthentication, SessionAuthentication)
+
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = UserFilter
+
+    # throttle_classes = [MyThrottle, ]
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return UserProfile.objects.all().order_by('-add_time')  # .exclude(id=user.id)
+        return UserProfile.objects.filter(proxy_id=user.id).order_by('-add_time')
+
+    def get_serializer_class(self):
+        return UserListDetailSerializer
+
+    def get_permissions(self):
+        return [IsAuthenticated()]
+
+    # def get_object(self):
+    #     return self.request.user
 
 @csrf_exempt
 def device_login(request):
