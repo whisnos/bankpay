@@ -1014,7 +1014,7 @@ class QueryOrderView(views.APIView):
             processed_dict[key] = value
         uid = processed_dict.get('uid', '')
         order_no = processed_dict.get('order_no', '')
-        user_queryset = UserProfile.objects.filter(uid=uid)
+        user_queryset = UserProfile.objects.filter(uid=uid,is_active=True)
         if user_queryset:
             user = user_queryset[0]
             order_queryset = OrderInfo.objects.filter(user=user, order_no=order_no)
