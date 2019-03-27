@@ -19,6 +19,7 @@ class OrderInfo(models.Model):
     user = models.ForeignKey(UserProfile, verbose_name='用户', on_delete=models.CASCADE)
     pay_status = models.CharField(default='PAYING', max_length=30, choices=PAY_STATUS, verbose_name='订单状态')
     total_amount = models.DecimalField(verbose_name='总金额', max_digits=7, decimal_places=2)
+    money = models.DecimalField(verbose_name='实际金额', null=True, blank=True, max_digits=7, decimal_places=2)
     order_no = models.CharField(max_length=100, unique=True, verbose_name='网站订单号')
     user_msg = models.CharField(max_length=200, null=True, blank=True, verbose_name='用户留言')
     pay_time = models.DateTimeField(null=True, blank=True, verbose_name="支付时间")

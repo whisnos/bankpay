@@ -25,7 +25,7 @@ from trade.views import OrderListPagination
 from user.filters import UserFilter
 from user.models import UserProfile, DeviceName, NoticeInfo, VersionInfo, OperateLog, BankInfo
 from user.serializers import RegisterUserSerializer, UserDetailSerializer, UpdateUserSerializer, NoticeInfoSerializer, \
-    LogInfoSerializer, LogListInfoSerializer
+    LogInfoSerializer, LogListInfoSerializer, UserRetrieveSerializer
 from django.contrib.auth import get_user_model
 
 from utils.make_code import make_uuid_code, make_auth_code, make_md5
@@ -158,8 +158,8 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
         return UserProfile.objects.filter(proxy_id=user.id).order_by('-add_time')
 
     def get_serializer_class(self):
-        # if self.action == "retrieve":
-        #     return UserDetailSerializer
+        if self.action == "retrieve":
+            return UserRetrieveSerializer
         if self.action == "create":
             return RegisterUserSerializer
         # elif self.action == "list":
@@ -759,6 +759,7 @@ class CallBackViewset(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Upd
                         resp['order_id'] = order_obj.order_id
                         resp['order_no'] = order_obj.order_no
                         resp['user_msg'] = order_obj.user_msg
+                        resp['money'] = str(order_obj.money)
                         r = json.dumps(resp)
                         headers = {'Content-Type': 'application/json'}
 

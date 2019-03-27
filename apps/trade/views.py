@@ -287,7 +287,7 @@ class GetPayView(views.APIView):
         for key, value in request.data.items():
             processed_dict[key] = value
         uid = processed_dict.get('uid', '')
-        total_amount = processed_dict.get('total_amount', '')
+        money = total_amount = processed_dict.get('total_amount', '')
         user_msg = processed_dict.get('user_msg', '')
         order_id = processed_dict.get('order_id', '')
         key = processed_dict.get('key', '')
@@ -362,6 +362,7 @@ class GetPayView(views.APIView):
             order.order_id = order_id
             order.bank_tel = bank_tel
             order.account_num = account_num
+            order.money = money
             pay_url = FONT_DOMAIN + '/pay/' + order_no
             order.pay_url = pay_url
             order.receive_way = '0'
@@ -380,7 +381,7 @@ class GetPayView(views.APIView):
             resp['add_time'] = str(order.add_time)
             resp['channel'] = channel
             resp['pay_url'] = pay_url
-
+            resp['money'] = money
             return Response(resp)
         resp['code'] = 404
         resp['msg'] = 'key匹配错误'
@@ -468,6 +469,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     return Response(data=resp, status=code)
                 elif len(bank_queryset) == 1:
                     bank_obj = bank_queryset[0]
+                    print(bank_obj.account_num)
                 else:
                     resp['msg'] = '存在多张银行卡，需手动处理'
                     code = 404
@@ -524,6 +526,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     resp['order_id'] = order_obj.order_id
                     resp['order_no'] = order_obj.order_no
                     resp['user_msg'] = order_obj.user_msg
+                    resp['money'] = str(order_obj.money)
                     r = json.dumps(resp)
                     headers = {'Content-Type': 'application/json'}
                     try:
@@ -534,7 +537,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                         else:
                             order_obj.pay_status = 'NOTICE_FAIL'
                             order_obj.save()
-                            resp['msg'] = '订单处理成功，通知失败1'
+                            resp['msg'] = '订单处理成功，通知失败'
                             return Response(data=resp, status=400)
                     except Exception:
                         order_obj.pay_status = 'NOTICE_FAIL'
@@ -1026,7 +1029,8 @@ class QueryOrderView(views.APIView):
                 resp['order_no'] = order.order_no
                 resp['order_id'] = order.order_id
                 resp['pay_time'] = order.pay_time
-                resp['channel'] = eval('order.get_receive_way_display()') # eval('obj.get_receive_way_display()')
+                resp['money'] = order.money
+                resp['channel'] = eval('order.get_receive_way_display()')  # eval('obj.get_receive_way_display()')
                 return Response(resp)
         return Response(resp)
 
@@ -1087,5 +1091,5 @@ class ReleaseViewset(mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.L
 
 @csrf_exempt
 def test(request):
-    print('接收到的信息',request.body)
+    print('接收到的信息', request.body)
     return HttpResponse('success')
