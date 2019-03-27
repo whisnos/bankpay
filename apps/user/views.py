@@ -73,11 +73,12 @@ class CustomModelBackend(ModelBackend):
         except Exception as e:
             try:
                 print(user.login_token, password)
-                if user.login_token == password:
-                    print('设备登录成功', user.id)
-                    userid = user.user_id
-                    user1 = User.objects.get(id=userid)
-                    return user1
+                if user.is_active:
+                    if user.login_token == password:
+                        print('设备登录成功', user.id)
+                        userid = user.user_id
+                        user1 = User.objects.get(id=userid)
+                        return user1
                 return None
             except Exception as e:
                 return None
@@ -294,7 +295,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                         user.notify_url = notify_url
                         resp['msg'].append('回调修改成功')
                     if operatepw:
-                        print('operatepw',operatepw)
+                        print('operatepw', operatepw)
                         user.safe_code = make_md5(operatepw)
                         resp['msg'].append('操作密码修改成功')
                     if auth_code:

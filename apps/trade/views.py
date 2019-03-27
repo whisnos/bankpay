@@ -294,7 +294,7 @@ class GetPayView(views.APIView):
         return_url = processed_dict.get('return_url', '')
         channel = processed_dict.get('channel', '')
         # channel=ChooseChannel(channel).make_choose()
-        user_queryset = UserProfile.objects.filter(uid=uid)
+        user_queryset = UserProfile.objects.filter(uid=uid,is_active=True)
         if not user_queryset:
             resp['msg'] = 'uid或者auth_code错误，请重试~~'
             return Response(resp, status=404)
