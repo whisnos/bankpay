@@ -1217,7 +1217,7 @@ class UserListDetailSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
     auth_code = serializers.CharField(label='用户授权码', read_only=True, allow_blank=False, help_text='用户授权码')
     is_proxy = serializers.BooleanField(label='是否代理', read_only=True)
-    total_money = serializers.CharField(read_only=True)
+    total_money = serializers.FloatField(read_only=True)
     add_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='加款', write_only=True,
                                          required=False)
     minus_money = serializers.DecimalField(max_digits=7, decimal_places=2, help_text='扣款', write_only=True,
