@@ -870,7 +870,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(label='手机号', read_only=True, allow_blank=False, help_text='手机号')
     auth_code = serializers.CharField(label='用户授权码', read_only=True, allow_blank=False, help_text='用户授权码')
     is_proxy = serializers.BooleanField(label='是否代理', read_only=True)
-    total_money = serializers.SerializerMethodField(read_only=True)
+    total_money = serializers.CharField(read_only=True)
     proxys = ProxysSerializer(many=True, read_only=True)
     banks = BankInfoSerializer(many=True, read_only=True)
 
@@ -883,9 +883,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
     service_rate = serializers.CharField(read_only=True)
     proxy_name = serializers.SerializerMethodField(label='所属代理', read_only=True, help_text='所属代理')
     level = serializers.CharField(read_only=True, required=False)
-
+    userid_list1 = []
     def make_userid_list(self, obj):
         userid_list = []
+        # print('obj',obj)
         if not obj.is_proxy and not obj.is_superuser:
             user_qset = UserProfile.objects.filter(proxy_id=obj.id)
             for user in user_qset:
@@ -896,6 +897,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
             user_qset = UserProfile.objects.filter(is_proxy=True)
             for user in user_qset:
                 userid_list.append(user.id)
+        self.userid_list1 = userid_list
+        # print('2')
         return userid_list
 
     def get_proxy_name(self, obj):
@@ -904,13 +907,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
             return user_query[0].username
         return obj.username
 
-    def get_total_money(self, obj):
-        userid_list = self.make_userid_list(obj)
-        order_queryset = UserProfile.objects.filter(id__in=userid_list).aggregate(
-            total_money=Sum('total_money'))
-        if not order_queryset.get('total_money', '0'):
-            return '0'
-        return '%.2f' % order_queryset.get('total_money', '0')
+    # def get_total_money(self, obj):
+    #     userid_list = self.make_userid_list(obj)
+    #     order_queryset = UserProfile.objects.filter(id__in=userid_list).aggregate(
+    #         total_money=Sum('total_money'))
+    #     if not order_queryset.get('total_money', '0'):
+    #         return '0'
+    #     return '%.2f' % order_queryset.get('total_money', '0')
 
     def validate_service_rate(self, data):
         if not re.match(r'(^0\.(0[1-9]|[1-9]{1,2})$)', str(data)):
@@ -936,14 +939,16 @@ class UserDetailSerializer(serializers.ModelSerializer):
     hour_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_hour_total_num(self, obj):
-        return OrderInfo.objects.filter(user=obj,
+        userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                         add_time__gte=datetime.datetime.now() - datetime.timedelta(hours=1)).count()
 
     # 小时 成功数
     hour_success_num = serializers.SerializerMethodField(read_only=True)
 
     def get_hour_success_num(self, obj):
-        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
                                         add_time__gte=datetime.datetime.now() - datetime.timedelta(hours=1)).count()
 
     # 小时 成功率
@@ -960,7 +965,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     hour_money_all = serializers.SerializerMethodField(read_only=True)
 
     def get_hour_money_all(self, obj):
-        order_queryset = OrderInfo.objects.filter(user=obj,
+        # userid_list = self.make_userid_list(obj)
+        order_queryset = OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                                   add_time__gte=datetime.datetime.now() - datetime.timedelta(
                                                       hours=1)).aggregate(
             total_amount=Sum('total_amount'))
@@ -972,8 +978,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
     hour_money_success = serializers.SerializerMethodField(read_only=True)
 
     def get_hour_money_success(self, obj):
+        # userid_list = self.make_userid_list(obj)
         order_queryset = OrderInfo.objects.filter(
-            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
             add_time__gte=datetime.datetime.now() - datetime.timedelta(hours=1)).aggregate(
             total_amount=Sum('total_amount'))
         if not order_queryset.get('total_amount', '0'):
@@ -985,17 +992,17 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_today_total_num(self, obj):
-        userid_list = self.make_userid_list(obj)
-        return OrderInfo.objects.filter(user_id__in=userid_list,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                         add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).count()
 
     # 今天 成功数
     today_success_num = serializers.SerializerMethodField(read_only=True)
 
     def get_today_success_num(self, obj):
-        userid_list = self.make_userid_list(obj)
+        # userid_list = self.make_userid_list(obj)
         return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
-                                        user_id__in=userid_list,
+                                        user_id__in=self.userid_list1,
                                         add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).count()
 
     # 今天 成功率
@@ -1012,8 +1019,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_money_all = serializers.SerializerMethodField(read_only=True)
 
     def get_today_money_all(self, obj):
-        userid_list = self.make_userid_list(obj)
-        order_queryset = OrderInfo.objects.filter(user_id__in=userid_list,
+        # userid_list = self.make_userid_list(obj)
+        order_queryset = OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                                   add_time__gte=time.strftime('%Y-%m-%d',
                                                                               time.localtime(time.time()))).aggregate(
             total_amount=Sum('total_amount'))
@@ -1025,9 +1032,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
     today_money_success = serializers.SerializerMethodField(read_only=True)
 
     def get_today_money_success(self, obj):
-        userid_list = self.make_userid_list(obj)
+        # userid_list = self.make_userid_list(obj)
         order_queryset = OrderInfo.objects.filter(
-            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list,
+            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
             add_time__gte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).aggregate(
             total_amount=Sum('total_amount'))
         if not order_queryset.get('total_amount', '0'):
@@ -1039,7 +1046,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     yesterday_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_yesterday_total_num(self, obj):
-        return OrderInfo.objects.filter(user=obj,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                         add_time__gte=(datetime.datetime.now() - datetime.timedelta(days=1)).strftime(
                                             '%Y-%m-%d'),
                                         add_time__lte=time.strftime('%Y-%m-%d', time.localtime(time.time()))).count()
@@ -1048,7 +1056,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     yesterday_success_num = serializers.SerializerMethodField(read_only=True)
 
     def get_yesterday_success_num(self, obj):
-        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
                                         add_time__range=(
                                             (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
                                             time.strftime('%Y-%m-%d', time.localtime(time.time())))).count()
@@ -1067,7 +1076,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     yesterday_money_all = serializers.SerializerMethodField(read_only=True)
 
     def get_yesterday_money_all(self, obj):
-        order_queryset = OrderInfo.objects.filter(user=obj,
+        # userid_list = self.make_userid_list(obj)
+        order_queryset = OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                                   add_time__range=(
                                                       (datetime.datetime.now() - datetime.timedelta(days=1)).strftime(
                                                           '%Y-%m-%d'),
@@ -1082,8 +1092,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
     yesterday_money_success = serializers.SerializerMethodField(read_only=True)
 
     def get_yesterday_money_success(self, obj):
+        # userid_list = self.make_userid_list(obj)
         order_queryset = OrderInfo.objects.filter(
-            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
             add_time__range=((datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'),
                              time.strftime('%Y-%m-%d', time.localtime(time.time())))).aggregate(
             total_amount=Sum('total_amount'))
@@ -1096,7 +1107,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     month_total_num = serializers.SerializerMethodField(read_only=True)
 
     def get_month_total_num(self, obj):
-        return OrderInfo.objects.filter(user=obj,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                         add_time__gte=datetime.datetime(datetime.date.today().year,
                                                                         datetime.date.today().month, 1)).count()
 
@@ -1104,7 +1116,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     month_success_num = serializers.SerializerMethodField(read_only=True)
 
     def get_month_success_num(self, obj):
-        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+        # userid_list = self.make_userid_list(obj)
+        return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
                                         add_time__gte=datetime.datetime(datetime.date.today().year,
                                                                         datetime.date.today().month, 1)).count()
 
@@ -1123,8 +1136,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     month_money_all = serializers.SerializerMethodField(read_only=True)
 
     def get_month_money_all(self, obj):
-
-        order_queryset = OrderInfo.objects.filter(user=obj,
+        # userid_list = self.make_userid_list(obj)
+        order_queryset = OrderInfo.objects.filter(user_id__in=self.userid_list1,
                                                   add_time__gte=(datetime.datetime(datetime.date.today().year,
                                                                                    datetime.date.today().month,
                                                                                    1))).aggregate(
@@ -1138,8 +1151,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
     month_money_success = serializers.SerializerMethodField(read_only=True)
 
     def get_month_money_success(self, obj):
+        # userid_list = self.make_userid_list(obj)
+        # print('self.userid_list1', self.userid_list1)
         order_queryset = OrderInfo.objects.filter(
-            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user=obj,
+            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1,
             add_time__gte=(datetime.datetime(datetime.date.today().year, datetime.date.today().month, 1))).aggregate(
             total_amount=Sum('total_amount'))
         if not order_queryset.get('total_amount', '0'):
@@ -1152,15 +1167,16 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_all_total_num(self, obj):
         userid_list = self.make_userid_list(obj)
-        return OrderInfo.objects.filter(user_id__in=userid_list).count()
+        # print('self.userid_list11111', self.userid_list1)
+        return OrderInfo.objects.filter(user_id__in=self.userid_list1).count()
 
     # 全部 成功数
     all_success_num = serializers.SerializerMethodField(read_only=True)
 
     def get_all_success_num(self, obj):
-        userid_list = self.make_userid_list(obj)
+        # userid_list = self.make_userid_list(obj)
         return OrderInfo.objects.filter((Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')),
-                                        user_id__in=userid_list).count()
+                                        user_id__in=self.userid_list1).count()
 
     # 全部 成功率
     all_rate = serializers.SerializerMethodField(read_only=True)
@@ -1176,8 +1192,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     all_money_all = serializers.SerializerMethodField(read_only=True)
 
     def get_all_money_all(self, obj):
-        userid_list = self.make_userid_list(obj)
-        order_queryset = OrderInfo.objects.filter(user_id__in=userid_list).aggregate(
+        # userid_list = self.make_userid_list(obj)
+        order_queryset = OrderInfo.objects.filter(user_id__in=self.userid_list1).aggregate(
             total_amount=Sum('total_amount'))
         if not order_queryset.get('total_amount', '0'):
             return '0'
@@ -1187,10 +1203,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
     all_money_success = serializers.SerializerMethodField(read_only=True)
 
     def get_all_money_success(self, obj):
-        userid_list = self.make_userid_list(obj)
+        # userid_list = self.make_userid_list(obj)
         # print('userid_list',userid_list)
         order_queryset = OrderInfo.objects.filter(
-            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=userid_list).aggregate(
+            (Q(pay_status='TRADE_SUCCESS') | Q(pay_status='NOTICE_FAIL')), user_id__in=self.userid_list1).aggregate(
             total_amount=Sum('total_amount'))
         if not order_queryset.get('total_amount', '0'):
             return '0'

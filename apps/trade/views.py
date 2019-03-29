@@ -459,7 +459,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
             print('money', money)
-            device_queryset = DeviceName.objects.filter(auth_code=auth_code)
+            device_queryset = DeviceName.objects.filter(auth_code=auth_code,is_active=True)
             if device_queryset:
                 device_obj = device_queryset[0]
                 bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
@@ -661,7 +661,6 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
                         instance.save()
 
                         # 更新代理余额
-                        print('daili_obj.total_money',daili_obj.total_money,money)
                         daili_obj.total_money = '%.2f' % (Decimal(daili_obj.total_money) - Decimal(money))
                         daili_obj.save()
                         code = 200

@@ -247,7 +247,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                             daili_obj.total_money = '%.2f' % (Decimal(daili_obj.total_money) + Decimal(add_money))
                             daili_obj.save()
                         if minus_money:
-                            if Decimal(minus_money) <= Decimal(user.total_money):
+                            if Decimal(minus_money) <= Decimal(user.total_money) and Decimal(daili_obj.total_money) >= Decimal(minus_money):
                                 user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                                 resp['msg'].append('扣款成功')
                                 # 加日志
@@ -258,18 +258,14 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                     ramark_info)
                                 log.add_logs('3', content, self.request.user.id)
                                 # 更新代理余额
-                                if daili_obj.total_money >= add_money:
-                                    daili_obj.total_money = '%.2f' % (
-                                                Decimal(daili_obj.total_money) - Decimal(add_money))
-                                    daili_obj.save()
-                                else:
-                                    code = 400
-                                    resp['msg'].append('代理余额不足，扣款失败')
+                                daili_obj.total_money = '%.2f' % (
+                                            Decimal(daili_obj.total_money) - Decimal(minus_money))
+                                daili_obj.save()
                             else:
                                 code = 400
                                 resp['msg'].append('余额不足，扣款失败')
                     else:
-                        code = 400
+                        # code = 400
                         resp['msg'].append('余额处理失败，代理不存在')
                     if password == password2:
                         if password:
@@ -403,7 +399,7 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                     Decimal(self.request.user.total_money) - Decimal(add_money))
                         self.request.user.save()
                     if minus_money:
-                        if Decimal(minus_money) <= Decimal(user.total_money):
+                        if Decimal(minus_money) <= Decimal(user.total_money) and Decimal(self.request.user.total_money) >= Decimal(minus_money):
                             user.total_money = '%.2f' % (Decimal(user.total_money) - Decimal(minus_money))
                             resp['msg'].append('扣款成功')
                             # 加日志
@@ -413,13 +409,9 @@ class UserProfileViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.
                                 user.username) + ' 扣款 ' + ' 金额 ' + str(minus_money) + ' 元。' + ' 备注：' + str(ramark_info)
                             log.add_logs('3', content, self.request.user.id)
                             # 更新代理余额
-                            if self.request.user.total_money >= add_money:
-                                self.request.user.total_money = '%.2f' % (
-                                            Decimal(self.request.user.total_money) - Decimal(minus_money))
-                                self.request.user.save()
-                            else:
-                                code = 404
-                                resp['msg'].append('代理余额不足，扣款失败')
+                            self.request.user.total_money = '%.2f' % (
+                                        Decimal(self.request.user.total_money) - Decimal(minus_money))
+                            self.request.user.save()
                         else:
                             code = 404
                             resp['msg'].append('余额不足，扣款失败')
