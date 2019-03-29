@@ -459,7 +459,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             auth_code = processed_dict.get('auth_code', '')
             key = processed_dict.get('key', '')
             print('money', money)
-            device_queryset = DeviceName.objects.filter(auth_code=auth_code)
+            device_queryset = DeviceName.objects.filter(auth_code=auth_code,is_active=True)
             if device_queryset:
                 device_obj = device_queryset[0]
                 bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
@@ -503,7 +503,9 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     # 更新用户收款
                     user_obj.total_money = '%.2f' % (Decimal(user_obj.total_money) + Decimal(money))
                     user_obj.save()
-
+                    # 代理代理收款
+                    user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(money))
+                    user.save()
                     # 更新商家存钱
                     bank_obj.total_money = '%.2f' % (Decimal(bank_obj.total_money) + Decimal(money))
                     bank_obj.last_time = datetime.datetime.now()
@@ -632,12 +634,16 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
         serializer.is_valid(raise_exception=True)
         # original_safe_code = serializer.validated_data.get('original_safe_code', '')
         original_safe_code = self.request.data.get('original_safe_code', '')
-        if user_up.is_proxy:
+        daili_queryset = UserProfile.objects.filter(id=user_up.proxy_id)
+        if user_up.is_proxy or not daili_queryset:
+            daili_obj = daili_queryset[0]
             if original_safe_code:
                 if make_md5(original_safe_code) == self.request.user.safe_code:
                     money = serializer.validated_data.get('money', '')
                     user_money = user_up.total_money
-                    if money <= user_money:
+
+                    if money <= user_money and daili_obj.total_money >= money:
+
                         instance = serializer.save()
                         withdraw_no = generate_order_no(user_up.id)
                         instance.withdraw_no = withdraw_no
@@ -653,6 +659,10 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
 
                         user_up.save()
                         instance.save()
+
+                        # 更新代理余额
+                        daili_obj.total_money = '%.2f' % (Decimal(daili_obj.total_money) - Decimal(money))
+                        daili_obj.save()
                         code = 200
                         resp['msg'] = '创建成功'
                     else:
@@ -696,18 +706,28 @@ class WithDrawViewset(XLSXFileMixin, mixins.RetrieveModelMixin, mixins.CreateMod
                 user_queryset = UserProfile.objects.filter(id=withdraw_obj.user_id)
                 if user_queryset:
                     user = user_queryset[0]
-                    user.total_money = '%.2f' % (user.total_money + withdraw_obj.money)
-                    code = 200
-                    resp['msg'].append('状态修改成功')
-                    user.save()
-                    withdraw_obj.withdraw_status = withdraw_status
+                    daili_queryset = UserProfile.objects.filter(id=user.proxy_id)
+                    if daili_queryset:
+                        daili_obj = daili_queryset[0]
+                        user.total_money = '%.2f' % (user.total_money + withdraw_obj.money)
 
-                    # 引入日志
-                    log = MakeLogs()
-                    content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_ ' + str(
-                        withdraw_obj.withdraw_no) + ' 状态为_ 提现驳回'
-                    log.add_logs('2', content, self.request.user.id)
+                        # 更新代理余额
+                        daili_obj.total_money = '%.2f' % (Decimal(daili_obj.total_money) + Decimal(withdraw_obj.money))
+                        daili_obj.save()
 
+                        code = 200
+                        resp['msg'].append('状态修改成功')
+                        user.save()
+                        withdraw_obj.withdraw_status = withdraw_status
+
+                        # 引入日志
+                        log = MakeLogs()
+                        content = '用户：' + str(self.request.user.username) + ' 处理提现_' + '订单号_ ' + str(
+                            withdraw_obj.withdraw_no) + ' 状态为_ 提现驳回'
+                        log.add_logs('2', content, self.request.user.id)
+                    else:
+                        code = 400
+                        resp['msg'].append('余额处理失败，代理不存在')
                 else:
                     code = 400
                     resp['msg'].append('用户不存在')

@@ -12,10 +12,10 @@ class UserFilter(filters.FilterSet):
     level = filters.NumberFilter(field_name="level")
     # min_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='gte')
     # max_time = filters.DateTimeFilter(field_name='add_time', lookup_expr='lte')
-    # user_id = filters.NumberFilter(field_name='user_id',help_text="根据用户ID")
+    id = filters.NumberFilter(field_name='id',help_text="根据用户ID")
     class Meta:
         model = UserProfile
-        fields = ['username','is_proxy','proxy_name','level']
+        fields = ['username','is_proxy','proxy_name','level','id']
 
 
 class DeviceFilter(filters.FilterSet):

@@ -19,12 +19,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_jwt.views import obtain_jwt_token
 
-from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version,LogsViewset,CallBackViewset
+from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version, LogsViewset, \
+    CallBackViewset, UserAccountsViewset
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, WithDrawViewset, VerifyViewset, \
     pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset,test
 
 route = DefaultRouter()
-route.register(r'users', UserProfileViewset, base_name="users")
+route.register(r'users', UserProfileViewset, base_name="users") # users
+route.register(r'accounts', UserAccountsViewset, base_name="accounts") # accounts
 route.register(r'orders', OrderViewset, base_name="orders")
 route.register(r'banks', BankViewset, base_name="banks")
 route.register(r'drawings', WithDrawViewset, base_name='moneys')
