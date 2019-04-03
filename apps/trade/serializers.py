@@ -28,7 +28,15 @@ class OrderSerializer(serializers.ModelSerializer):
         model = OrderInfo
         fields = '__all__'
 
+class OrderGetSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+    money = serializers.SerializerMethodField(read_only=True)
+    def get_money(self, instance):
 
+        return int(instance.total_amount)*100
+    class Meta:
+        model = OrderInfo
+        fields = ['id','money']
 class OrderUpdateSeralizer(serializers.ModelSerializer):
     id = serializers.IntegerField(write_only=True, required=True)
 
@@ -435,7 +443,7 @@ class WithDrawCreateSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         user_money = user.total_money
         if not re.match(
-                r'(^[1-4]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^[0-9]\.[0-9]([0-9])?$)|(^[1-5]([0-9]{1,3})?(\.[0-9]{1,2})?$)',
+                r'(^[1-9]([0-9]{1,4})?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)',
                 str(attrs['money'])):
             raise serializers.ValidationError('金额输入异常')
         if attrs['money'] > user_money or attrs['money'] == 0:

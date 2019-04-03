@@ -20,14 +20,14 @@ class OrderInfo(models.Model):
     pay_status = models.CharField(default='PAYING', max_length=30, choices=PAY_STATUS, verbose_name='订单状态')
     total_amount = models.DecimalField(verbose_name='总金额', max_digits=7, decimal_places=2)
     money = models.DecimalField(verbose_name='实际金额', null=True, blank=True, max_digits=7, decimal_places=2)
-    order_no = models.CharField(max_length=100, unique=True, verbose_name='网站订单号')
+    order_no = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name='网站订单号')
     user_msg = models.CharField(max_length=200, null=True, blank=True, verbose_name='用户留言')
     pay_time = models.DateTimeField(null=True, blank=True, verbose_name="支付时间")
     add_time = models.DateTimeField(default=datetime.now, verbose_name='创建时间')
     order_id = models.CharField(max_length=100, null=True, blank=True, verbose_name='商户订单号')
     bank_tel = models.CharField(max_length=15, null=True, blank=True, verbose_name='银行电话')
     account_num = models.CharField(max_length=32, null=True, blank=True, verbose_name='银行卡号')
-    pay_url = models.CharField(max_length=300, null=True, blank=True, verbose_name='支付链接')
+    pay_url = models.TextField(null=True, blank=True, verbose_name='支付链接')
     # 支付通道
     receive_way = models.CharField(max_length=20, choices=RECEIVE_TYPE,
                                    verbose_name='支付通道', default='0')
