@@ -22,7 +22,7 @@ from rest_framework_jwt.views import obtain_jwt_token
 from user.views import UserProfileViewset, device_login, NoticeInfoViewset, ChartInfoViewset, version, LogsViewset, \
     CallBackViewset, UserAccountsViewset
 from trade.views import OrderViewset, BankViewset, GetPayView, VerifyView, WithDrawViewset, VerifyViewset, \
-    pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset,test
+    pay, DevicesViewset, mobile_pay, QueryOrderView, ReleaseViewset,test,get_info,OrderInfoViewset
 
 route = DefaultRouter()
 route.register(r'users', UserProfileViewset, base_name="users") # users
@@ -32,6 +32,7 @@ route.register(r'banks', BankViewset, base_name="banks")
 route.register(r'drawings', WithDrawViewset, base_name='moneys')
 route.register(r'devices', DevicesViewset, base_name='devices')
 route.register(r'verifys', VerifyViewset, base_name='verifys')  # 验证 手机揽收 后的信息
+route.register(r'orderinfo', OrderInfoViewset, base_name='orderinfo')  # 获取订单信息
 route.register(r'notices', NoticeInfoViewset, base_name="notices")
 route.register(r'charts', ChartInfoViewset, base_name="charts")
 route.register(r'releases', ReleaseViewset, base_name="releases")
@@ -49,6 +50,7 @@ urlpatterns = [
     url(r'^device_login/$', device_login, name='device_login'),
     url(r'^version/$', version, name='version'),
     url(r'^test/$', test, name='test'),
+    url(r'^get_info/$', get_info, name='get_info'),
     # 查询订单接口
     url(r'^query_order/$', QueryOrderView.as_view(), name="query_order"),
 ]
