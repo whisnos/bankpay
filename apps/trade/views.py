@@ -320,8 +320,7 @@ class GetPayView(views.APIView):
         auth_code = user.auth_code
         new_temp = str(str(uid) + str(auth_code) + str(total_amount) + str(return_url) + str(order_id))
         my_key = make_md5(new_temp)
-        if key == key:
-
+        if key == my_key:
 
             bank_queryet = BankInfo.objects.filter(is_active=True, user_id=user.proxy_id).all()
             if not bank_queryet:
@@ -352,7 +351,7 @@ class GetPayView(views.APIView):
                     break
 
             # channel=ChooseChannel(channel,user.id,order_no,total_amount,user_msg,order_id,bank_tel,account_num).make_choose()
-            order_no='1'
+            order_no = '1'
             if channel == 'atb':
                 short_code = make_short_code(8)
                 order_no = "{time_str}{userid}{randstr}".format(time_str=time.strftime("%Y%m%d%H%M%S"),
@@ -480,12 +479,13 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
             # orderid = processed_dict.get('id', '')
             channel = processed_dict.get('channel', '')
             order_no = processed_dict.get('order_no', '')
-            print('XXXXXXXXXXXX',channel,order_no,key)
+            print('XXXXXXXXXXXX', channel, order_no, key)
             if channel == 'atb':
                 device_queryset = DeviceName.objects.filter(auth_code=auth_code, is_active=True)
                 if device_queryset:
                     device_obj = device_queryset[0]
-                    bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel, devices_id=device_obj.id)
+                    bank_queryset = BankInfo.objects.filter(user_id=user.id, bank_tel=bank_tel,
+                                                            devices_id=device_obj.id)
                     if not bank_queryset:
                         code = 404
                         resp['msg'] = '银行卡不存在，联系管理员处理'
@@ -596,24 +596,27 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
 
                     for user_obj in user_queryset:
                         user_list.append(user_obj.id)
-                    order_queryset=OrderInfo.objects.filter(order_no=order_no)
-                    if order_queryset and order_queryset[0].user_id in user_list :
+                    order_queryset = OrderInfo.objects.filter(order_no=order_no)
+                    if order_queryset and order_queryset[0].user_id in user_list:
                         if order_queryset[0].pay_status == 'PAYING':
-                            order_queryset[0].pay_status='TRADE_SUCCESS'
+                            order_queryset[0].pay_status = 'TRADE_SUCCESS'
                             order_queryset[0].pay_time = datetime.datetime.now()
                             print('wang 通道 订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
                             order_queryset[0].save()
-                            order_user=UserProfile.objects.filter(id=order_queryset[0].user_id)[0]
-                            print('order_user',order_user)
+                            order_user = UserProfile.objects.filter(id=order_queryset[0].user_id)[0]
+                            print('order_user', order_user)
                             # 更新用户收款
-                            order_user.total_money = '%.2f' % (Decimal(order_user.total_money) + Decimal(order_queryset[0].total_amount))
+                            order_user.total_money = '%.2f' % (
+                                        Decimal(order_user.total_money) + Decimal(order_queryset[0].total_amount))
                             order_user.save()
                             # 代理代理收款
-                            user.total_money = '%.2f' % (Decimal(user.total_money) + Decimal(order_queryset[0].total_amount))
+                            user.total_money = '%.2f' % (
+                                        Decimal(user.total_money) + Decimal(order_queryset[0].total_amount))
                             user.save()
                             print('66666666666')
                             # 加密顺序 uid + order_no + total_amount + auth_code
-                            new_temp = str(order_user.uid) + str(order_queryset[0].order_no) + str(order_queryset[0].total_amount)
+                            new_temp = str(order_user.uid) + str(order_queryset[0].order_no) + str(
+                                order_queryset[0].total_amount)
                             my_key = make_md5(new_temp)
                             resp['key'] = my_key
                             resp['pay_status'] = order_queryset[0].pay_status
@@ -632,7 +635,8 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                                 resp['msg'] = '订单处理成功，无效notify_url，通知失败'
                                 return Response(data=resp, status=400)
                             try:
-                                res = requests.post(order_user.notify_url, headers=headers, data=r, timeout=10, stream=True)
+                                res = requests.post(order_user.notify_url, headers=headers, data=r, timeout=10,
+                                                    stream=True)
                                 if res.text == 'success':
                                     resp['msg'] = '订单处理成功!'
                                     return Response(data=resp, status=200)
@@ -669,7 +673,6 @@ class OrderInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.Up
     # serializer_class = VerifyPaySerializer
     serializer_class = OrderGetSerializer
 
-
     def get_queryset(self):
         user = self.request.user
 
@@ -696,21 +699,21 @@ class OrderInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.Up
     def update(self, request, *args, **kwargs):
         user = self.request.user
         resp = {'msg': []}
-        print('request.data',request.data,user)
+        print('request.data', request.data, user)
         if not user.is_proxy:
-            dict_result=request.data
+            dict_result = request.data
 
             # 获取代理商户列表
             user_list = []
             user_queryset = UserProfile.objects.filter(proxy_id=user.id)
             if not user_queryset:
-                resp['msg']='不存在有效商户'
+                resp['msg'] = '不存在有效商户'
                 code = 400
                 return Response(data=resp, status=code)
             for user_obj in user_queryset:
                 user_list.append(user_obj.id)
 
-            order_queryset=OrderInfo.objects.filter(id=dict_result.get('id'))
+            order_queryset = OrderInfo.objects.filter(id=dict_result.get('id'))
             if not dict_result.get('pay_url') or not dict_result.get('order_no'):
                 resp['msg'] = '不存在有效商户'
                 code = 400
@@ -719,9 +722,9 @@ class OrderInfoViewset(mixins.ListModelMixin, viewsets.GenericViewSet, mixins.Up
                 if order_queryset[0].user_id in user_list:
                     if not order_queryset[0].pay_url:
                         try:
-                            print("dict_result.get('pay_url')",dict_result.get('pay_url'),dict_result.get('order_no'))
-                            order_queryset[0].pay_url=dict_result.get('pay_url')
-                            order_queryset[0].order_no=dict_result.get('order_no')
+                            print("dict_result.get('pay_url')", dict_result.get('pay_url'), dict_result.get('order_no'))
+                            order_queryset[0].pay_url = dict_result.get('pay_url')
+                            order_queryset[0].order_no = dict_result.get('order_no')
                             order_queryset[0].save()
                             resp['msg'] = '处理成功'
                             code = 200
@@ -1306,12 +1309,18 @@ def test(request):
 def get_info(request):
     order_id = request.GET.get('id')
     resp = {'msg': []}
-    order_queryset=OrderInfo.objects.filter(id=order_id)
-    code = 200
-    if order_queryset:
-        resp['msg'] = '获取成功'
-        resp['pay_url']=order_queryset[0].pay_url
+    if order_id:
+        order_queryset = OrderInfo.objects.filter(id=order_id)
+        code = 200
+        if order_queryset:
+            print(order_queryset.query)
+            resp['msg'] = '获取成功'
+            resp['money'] = order_queryset[0].money
+            resp['pay_url'] = order_queryset[0].pay_url
+        else:
+            resp['msg'] = '不存在相应订单号'
+            code = 400
     else:
-        resp['msg']='不存在相应订单号'
-        code=400
+        resp['msg'] = '不存在相应订单号'
+        code = 400
     return JsonResponse(data=resp, status=code)
