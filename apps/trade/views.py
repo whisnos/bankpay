@@ -514,7 +514,7 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                     new_temp = str(money) + str(bank_tel) + str(auth_code) + SECRET_VERIFY
                     my_key = make_md5(new_temp)
 
-                    if key == key:
+                    if key == my_key:
                         order_obj.pay_status = 'TRADE_SUCCESS'
                         order_obj.pay_time = datetime.datetime.now()
                         print('订单状态处理成功！！！！！！！！！！！！！！！！！！！！！！！')
@@ -586,7 +586,6 @@ class VerifyViewset(mixins.UpdateModelMixin, viewsets.GenericViewSet):
                 # 加密顺序 money + bank_tel + auth_code + SECRET_VERIFY
                 new_temp = SECRET_VERIFY + str(order_no)
                 my_key = make_md5(new_temp)
-                print('my_key', my_key)
                 if key == my_key:
                     user_list = []
                     user_queryset = UserProfile.objects.filter(proxy_id=user.id)
