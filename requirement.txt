@@ -3,7 +3,7 @@ chardet==3.0.4
 colorama==0.4.1
 Django==2.1.5
 django-filter==2.1.0
-djangorestframework==3.9.1
+djangorestframework==3.11.2
 djangorestframework-jwt==1.11.0
 drf-renderer-xlsx==0.3.2
 et-xmlfile==1.0.1
